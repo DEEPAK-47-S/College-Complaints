@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}College Grievance Redressal Portal | Centralized Monitoring{% endblock %}</title>
     
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'icon/favicon.svg' %}">
+    <link rel="alternate icon" href="{% static 'icon/favicon.ico' %}">
+
     <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,12 +28,10 @@
     <nav class="public-navbar">
         <div class="container">
             <a href="{% url 'public:index' %}" class="public-brand">
-                <div class="public-brand-icon">
-                    <i class="ph-bold ph-graduation-cap"></i>
-                </div>
+                <img src="{% static 'icon/logo.svg' %}" alt="Emblem" class="public-brand-img" width="44" height="44">
                 <div class="brand-text-wrap">
                     <span class="brand-main">COLLEGE GRIEVANCE PORTAL</span>
-                    <span class="brand-sub">Centralized Student & Public Redressal System</span>
+                    <span class="brand-sub">Student & Higher Education Redressal</span>
                 </div>
             </a>
             

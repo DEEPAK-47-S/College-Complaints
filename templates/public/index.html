@@ -3,21 +3,20 @@
 {% block content %}
 <div class="hero animate-fade-in">
     <div class="hero-badge">
-        <i class="ph-bold ph-shield-check"></i> Official Oversight Portal &bull; AICTE / PGRC Cell
+        <i class="ph-bold ph-shield-check"></i> Official Grievance Redressal Portal
     </div>
     <h1 class="hero-title">
-        Centralized College & Student Grievance Redressal Portal <br>
-        <span style="font-size: 1.4rem; font-weight: 600; color: #475569;">Unified Platform for Technical Institutions & Higher Education</span>
+        Centralized College Grievance Redressal Portal
     </h1>
-    <p class="hero-subtitle mt-3">
-        Students, parents, faculty, and citizens can directly register grievances regarding capitation fees, ragging, faculty deficiency, examination malpractice, and infrastructure issues. Transparent review and time-bound resolution guaranteed.
+    <p class="hero-subtitle">
+        An official platform for students, parents, and faculty to report institutional grievances, upload evidence, and track transparent, time-bound resolutions.
     </p>
     
-    <div class="hero-actions mt-4">
-        <a href="{% url 'public:submit' %}" class="btn btn-primary" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
+    <div class="hero-actions">
+        <a href="{% url 'public:submit' %}" class="btn btn-primary btn-lg">
             <i class="ph-bold ph-paper-plane-tilt"></i> Submit Complaint
         </a>
-        <a href="{% url 'public:track' %}" class="btn btn-outline" style="font-size: 1.05rem; padding: 0.85rem 1.75rem; background: white;">
+        <a href="{% url 'public:track' %}" class="btn btn-outline btn-lg" style="background: white;">
             <i class="ph-bold ph-magnifying-glass"></i> Track Status
         </a>
     </div>
@@ -29,51 +28,51 @@
         <i class="ph-fill ph-info text-primary"></i> How It Works
     </h2>
     <p class="text-center text-muted" style="margin-top: -0.75rem; margin-bottom: 2rem; font-size: 0.95rem;">
-        Register your grievance and track real-time resolution in three simple steps.
+        Register your grievance and track official resolution in three simple steps.
     </p>
     
     <div class="stats-grid">
         <div class="stat-box">
             <div class="stat-circle">1</div>
-            <h3>Gmail OTP & Grievance Details</h3>
-            <p>Verify your email address via an instant 6-digit OTP code, then provide details about the institution and grievance.</p>
+            <h3>1. Verify with Gmail OTP</h3>
+            <p>Enter your Gmail address to receive a secure 6-digit verification code before registering.</p>
         </div>
         
         <div class="stat-box">
             <div class="stat-circle">2</div>
-            <h3>Get Unique Complaint ID</h3>
-            <p>Receive an official, collision-free tracking Complaint ID immediately upon submission for future reference.</p>
+            <h3>2. Get Official Complaint ID</h3>
+            <p>Fill in details, attach evidence, and receive a unique tracking Complaint ID immediately.</p>
         </div>
         
         <div class="stat-box">
             <div class="stat-circle">3</div>
-            <h3>Track Live Status</h3>
-            <p>Use your Complaint ID to monitor regulatory inquiry progress, officer findings, and official resolution timeline.</p>
+            <h3>3. Track Live Status</h3>
+            <p>Use your Complaint ID to monitor regulatory review, inquiry findings, and official orders.</p>
         </div>
     </div>
 </div>
 
-<!-- Features & Guarantees -->
-<div class="animate-fade-in" style="animation-delay: 0.2s; max-width: 760px; margin: 3rem auto 1rem; text-align: center;">
-    <h3 style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 1.25rem;">
-        Transparent, Secure & Accountable Redressal System
-    </h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; text-align: left;">
-        <div style="background: white; padding: 1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
-            <i class="ph-fill ph-check-circle" style="color: var(--primary-color); font-size: 1.5rem; flex-shrink: 0;"></i>
-            <span style="font-size: 0.9rem; font-weight: 600;">Gmail OTP Verified Authenticity</span>
+<!-- Trust & Security Highlights -->
+<div class="trust-grid animate-fade-in" style="animation-delay: 0.2s;">
+    <div class="trust-item">
+        <i class="ph-fill ph-seal-check"></i>
+        <div>
+            <strong>OTP Authenticated</strong>
+            <span>Direct verification prevents duplicate or malicious submissions.</span>
         </div>
-        <div style="background: white; padding: 1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
-            <i class="ph-fill ph-check-circle" style="color: var(--primary-color); font-size: 1.5rem; flex-shrink: 0;"></i>
-            <span style="font-size: 0.9rem; font-weight: 600;">Whistleblower & Privacy Protection</span>
+    </div>
+    <div class="trust-item">
+        <i class="ph-fill ph-shield-check"></i>
+        <div>
+            <strong>Whistleblower Privacy</strong>
+            <span>Complainant personal details remain strictly protected.</span>
         </div>
-        <div style="background: white; padding: 1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
-            <i class="ph-fill ph-check-circle" style="color: var(--primary-color); font-size: 1.5rem; flex-shrink: 0;"></i>
-            <span style="font-size: 0.9rem; font-weight: 600;">Evidence Attachments (PDF, JPG, PNG)</span>
-        </div>
-        <div style="background: white; padding: 1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
-            <i class="ph-fill ph-check-circle" style="color: var(--primary-color); font-size: 1.5rem; flex-shrink: 0;"></i>
-            <span style="font-size: 0.9rem; font-weight: 600;">Real-Time Public Status Timeline</span>
+    </div>
+    <div class="trust-item">
+        <i class="ph-fill ph-clock-countdown"></i>
+        <div>
+            <strong>Time-Bound Resolution</strong>
+            <span>Direct routing to designated case officers under statutory SLAs.</span>
         </div>
     </div>
 </div>

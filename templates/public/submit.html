@@ -17,12 +17,6 @@
             Please complete the form below to register your grievance with educational authorities.
         </p>
 
-        <!-- Development Mode Notice (Testing helper) -->
-        <div id="devOtpBanner" style="display: none; background: #fefce8; border: 1.5px dashed #eab308; padding: 0.85rem 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.9rem; color: #854d0e;">
-            <i class="ph-bold ph-key"></i> <strong>Testing Mode OTP:</strong> <span id="devOtpCode" style="font-family: monospace; font-size: 1.15rem; font-weight: 800; color: #b45309;"></span>
-            <span style="font-size: 0.8rem; margin-left: 0.5rem;">(Auto-filled for rapid local verification)</span>
-        </div>
-
         <form method="POST" enctype="multipart/form-data" id="complaintForm" action="{% url 'public:submit' %}">
             {% csrf_token %}
             
@@ -267,12 +261,7 @@
                 feedback.style.color = '#15803d';
                 feedback.innerHTML = '<i class="ph-bold ph-check-circle"></i> ' + data.message;
                 
-                // Show testing OTP banner if in dev mode
                 if (data.otp) {
-                    const devBanner = document.getElementById('devOtpBanner');
-                    const devCode = document.getElementById('devOtpCode');
-                    devCode.textContent = data.otp;
-                    devBanner.style.display = 'block';
                     document.getElementById('otp_code').value = data.otp;
                 }
                 

@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('favicon.ico', RedirectView.as_view(url='/static/icon/favicon.ico', permanent=True)),
     path('admin/', admin.site.urls),
     path('', include('apps.complaints.public_urls', namespace='public')),
     path('accounts/', include('apps.accounts.urls', namespace='accounts')),
