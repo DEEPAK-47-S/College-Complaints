@@ -79,18 +79,32 @@ ASGI_APPLICATION = 'config.asgi.application'
 # PostgreSQL default if DATABASE_URL or POSTGRES_DB is provided, otherwise robust SQLite for local testing
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
-    import urllib.parse as urlparse
-    url = urlparse.urlparse(DATABASE_URL)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': url.path[1:],
-            'USER': url.username,
-            'PASSWORD': url.password,
-            'HOST': url.hostname,
-            'PORT': url.port or '5432',
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+                ssl_require=True
+            )
         }
-    }
+    except ImportError:
+        import urllib.parse as urlparse
+        url = urlparse.urlparse(DATABASE_URL)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': urlparse.unquote(url.path[1:]),
+                'USER': urlparse.unquote(url.username or ''),
+                'PASSWORD': urlparse.unquote(url.password or ''),
+                'HOST': url.hostname,
+                'PORT': url.port or '5432',
+                'OPTIONS': {
+                    'sslmode': 'require',
+                }
+            }
+        }
 else:
     DATABASES = {
         'default': {
