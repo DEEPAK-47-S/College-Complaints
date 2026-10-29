@@ -1,7 +1,7 @@
 #!/bin/bash
 # Vercel Build Script for AUGIS Django
 echo "--> Ensuring output directory exists..."
-mkdir -p static_collected
+mkdir -p staticfiles_build/static
 
 echo "--> Installing dependencies from requirements.txt..."
 python3 -m pip install -r requirements.txt --break-system-packages

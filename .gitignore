@@ -25,6 +25,7 @@ Thumbs.db
 scratch/
 temp_*/
 static_collected/
+staticfiles_build/
 
 # Environment Secrets
 .env

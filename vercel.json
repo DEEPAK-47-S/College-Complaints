@@ -8,7 +8,9 @@
         "runtime": "python3.12",
         "includeFiles": [
           "templates/**",
-          "templates/**/*"
+          "templates/**/*",
+          "static/**",
+          "static/**/*"
         ]
       }
     },
@@ -16,14 +18,14 @@
       "src": "build_files.sh",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "static_collected"
+        "distDir": "staticfiles_build"
       }
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/static_collected/$1"
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
