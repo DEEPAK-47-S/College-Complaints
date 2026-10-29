@@ -6,4 +6,11 @@ python3 -m pip install -r requirements.txt
 echo "--> Collecting static files..."
 python3 manage.py collectstatic --noinput --clear
 
+if [ -n "$DATABASE_URL" ]; then
+    echo "--> Running cloud database migrations..."
+    python3 manage.py migrate --noinput
+    echo "--> Seeding institutions, bureaus, and accounts..."
+    python3 manage.py seed_augis_demo
+fi
+
 echo "--> Build complete!"
