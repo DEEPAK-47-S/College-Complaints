@@ -189,6 +189,56 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     min-height: 100vh;
 }
 
+/* Unauthenticated / Auth Layout Centering (Login, 2FA, Gateway) */
+body.auth-layout-body {
+    background: radial-gradient(circle at 50% 20%, #ffffff 0%, #f1f5f9 55%, #e2e8f0 100%) !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+[data-theme="dark"] body.auth-layout-body {
+    background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0f172a 60%, #0b1120 100%) !important;
+}
+
+.auth-layout-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.auth-layout-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1rem;
+}
+
+.auth-content-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.auth-box {
+    width: 100%;
+    max-width: 490px;
+    margin: 0 auto;
+}
+
 /* Topbar */
 .app-topbar {
     height: var(--augis-topbar-height);

@@ -3,27 +3,23 @@
 {% block title %}Officer Gateway – AICTE Grievance System (AUGIS){% endblock %}
 
 {% block content %}
-<div class="container-fluid px-1 px-sm-3 py-3 py-sm-4">
+<div class="auth-box">
     <!-- Top Return Bar -->
-    <div class="row justify-content-center mb-3">
-        <div class="col-12 col-md-8 col-lg-6 col-xl-5 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <a href="{% url 'public:index' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5 rounded-pill px-3 py-1.5 shadow-sm bg-white" style="font-size: 0.82rem;">
-                <i class="bi bi-arrow-left"></i> Public Grievance Portal
-            </a>
-            <span class="badge bg-white text-muted border px-2.5 py-1.5 shadow-sm rounded-pill" style="font-size: 0.78rem;">
-                <i class="bi bi-shield-lock text-danger me-1"></i> Official Gateway
-            </span>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <a href="{% url 'public:index' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5 rounded-pill px-3 py-1.5 shadow-sm bg-white" style="font-size: 0.82rem; transition: all 0.2s ease;">
+            <i class="bi bi-arrow-left"></i> Public Grievance Portal
+        </a>
+        <span class="badge bg-white text-muted border px-2.5 py-1.5 shadow-sm rounded-pill d-inline-flex align-items-center gap-1" style="font-size: 0.78rem;">
+            <i class="bi bi-shield-lock text-danger"></i> Official Gateway
+        </span>
     </div>
 
     <!-- Login Card -->
-    <div class="row justify-content-center align-items-center">
-        <div class="col-12 col-md-8 col-lg-6 col-xl-5">
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden" style="background: #ffffff; box-shadow: 0 20px 45px -15px rgba(18, 52, 90, 0.15), 0 0 0 1px rgba(226, 232, 240, 0.9);">
-                <!-- Gradient Accent Top Line -->
-                <div style="height: 5px; background: linear-gradient(90deg, #b91c1c 0%, #f59e0b 50%, #1e3a8a 100%);"></div>
-                
-                <div class="card-body p-3.5 p-sm-4 p-md-5">
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden" style="background: #ffffff; box-shadow: 0 20px 45px -15px rgba(18, 52, 90, 0.15), 0 0 0 1px rgba(226, 232, 240, 0.9);">
+        <!-- Gradient Accent Top Line -->
+        <div style="height: 5px; background: linear-gradient(90deg, #b91c1c 0%, #f59e0b 50%, #1e3a8a 100%);"></div>
+        
+        <div class="card-body p-3.5 p-sm-4 p-md-5">
                     <!-- Brand Header -->
                     <div class="text-center mb-4">
                         <div class="d-inline-flex p-2 rounded-circle bg-light border shadow-sm mb-3">
@@ -164,8 +160,6 @@
             <div class="text-center text-muted small mt-3" style="font-size: 0.78rem;">
                 AUGIS – Centralized Higher Education Grievance Redressal &bull; &copy; {% now "Y" %}
             </div>
-        </div>
-    </div>
 </div>
 
 <script>

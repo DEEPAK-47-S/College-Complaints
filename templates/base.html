@@ -31,8 +31,8 @@
 
     {% block extra_head %}{% endblock %}
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    <div class="app-wrapper">
+<body class="{% if not user.is_authenticated %}auth-layout-body{% endif %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <div class="app-wrapper {% if not user.is_authenticated %}auth-layout-wrapper{% endif %}">
         {% if user.is_authenticated %}
         <!-- Sidebar Navigation -->
         <aside class="app-sidebar">
@@ -116,7 +116,7 @@
         {% endif %}
 
         <!-- Main Workspace -->
-        <main class="app-main">
+        <main class="app-main {% if not user.is_authenticated %}auth-layout-main{% endif %}">
             {% if user.is_authenticated %}
             <!-- Top Navigation Bar -->
             <header class="app-topbar">
@@ -185,10 +185,10 @@
             {% endif %}
 
             <!-- Page Content Body -->
-            <div class="{% if user.is_authenticated %}p-4{% else %}p-2 p-sm-4{% endif %} flex-grow-1">
+            <div class="{% if user.is_authenticated %}p-4 flex-grow-1{% else %}auth-content-container{% endif %}">
                 <!-- System Flash Messages -->
                 {% if messages %}
-                <div class="container-fluid px-0 mb-3">
+                <div class="container-fluid px-0 mb-3" {% if not user.is_authenticated %}style="max-width: 490px;"{% endif %}>
                     {% for message in messages %}
                     <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
                         <div class="d-flex align-items-center">
