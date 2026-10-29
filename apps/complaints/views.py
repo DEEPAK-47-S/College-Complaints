@@ -29,19 +29,8 @@ from apps.bureaus.models import Bureau
 
 @login_required
 def complaint_list_view(request):
+    # Centralized queryset scoping respects role boundaries & universal public portal visibility
     complaints = get_scoped_complaints(request.user)
-
-    user = request.user
-    # Role Scoping
-    if user.role == User.Role.BUREAU_HEAD:
-        complaints = complaints.filter(currently_assigned_bureau=user.assigned_bureau)
-    elif user.role == User.Role.CASE_OFFICER:
-        # Bureau complaints or directly assigned
-        complaints = complaints.filter(
-            Q(currently_assigned_bureau=user.assigned_bureau) | Q(currently_assigned_officer=user)
-        )
-    elif user.role == User.Role.REGIONAL_OFFICER and user.authorized_region:
-        complaints = complaints.filter(institution__region=user.authorized_region)
 
     # Search query
     search = request.GET.get('q', '').strip()

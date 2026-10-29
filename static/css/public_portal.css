@@ -56,10 +56,17 @@
 }
 
 /* Base Styles */
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 body.public-portal {
@@ -71,6 +78,8 @@ body.public-portal {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 a {
@@ -696,6 +705,72 @@ textarea.form-control {
   
   .otp-code-input {
     max-width: 100%;
+  }
+}
+
+@media (max-width: 540px) {
+  .public-navbar .container {
+    height: 4.2rem;
+    padding: 0 0.85rem;
+  }
+
+  .public-brand-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.25rem;
+  }
+
+  .brand-main {
+    font-size: 0.88rem;
+  }
+
+  .brand-sub {
+    font-size: 0.65rem;
+  }
+
+  .hero {
+    padding: 2.5rem 1rem 2rem;
+  }
+
+  .hero-title {
+    font-size: 1.45rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .portal-card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .complaint-id-box {
+    font-size: 1.2rem;
+    padding: 1rem 0.75rem;
+  }
+
+  .section-title {
+    font-size: 1.15rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-text-wrap {
+    max-width: 190px;
+  }
+
+  .brand-main {
+    font-size: 0.82rem;
+  }
+
+  .brand-sub {
+    display: none;
   }
 }
 

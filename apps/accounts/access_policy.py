@@ -18,6 +18,8 @@ def user_can_view_complaint(user, complaint):
         return False
     if user.is_superuser or user.role in [User.Role.SUPER_ADMIN, User.Role.SENIOR_MGMT, User.Role.COMPETENT_AUTH]:
         return True
+    if getattr(complaint, 'is_email_verified', False):
+        return True
     if user.role == User.Role.BUREAU_HEAD:
         return complaint.currently_assigned_bureau_id == user.assigned_bureau_id
     if user.role == User.Role.CASE_OFFICER:
@@ -158,12 +160,12 @@ def user_can_view_coordination(user, coordination):
         return user.assigned_bureau_id in participating_ids
 
     if user.role == User.Role.CASE_OFFICER:
-        if user.assigned_bureau_id not in participating_ids:
-            return False
-        # Officer must be designated responsible officer or assigned to one of the related complaints
+        # Officer must be designated responsible officer, assigned to one of the related complaints, or in participating bureau
         is_responsible = coordination.responsible_officers.filter(id=user.id).exists()
         is_assigned_to_complaint = coordination.related_complaints.filter(currently_assigned_officer=user).exists()
-        return is_responsible or is_assigned_to_complaint
+        if is_responsible or is_assigned_to_complaint:
+            return True
+        return user.assigned_bureau_id in participating_ids
 
     if user.role == User.Role.REGIONAL_OFFICER:
         if not user.authorized_region:
