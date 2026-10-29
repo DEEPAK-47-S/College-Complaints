@@ -1,10 +1,13 @@
 import datetime
 import json
 import logging
+import re
 import secrets
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
@@ -54,11 +57,30 @@ def send_otp_api(request):
     except Exception:
         email = request.POST.get('email', '').strip().lower()
 
-    if not email or '@' not in email:
+    if not email:
         return JsonResponse({
             'success': False,
             'message': 'Please enter a valid Gmail / Email address.'
         }, status=400)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Please enter a valid email address (e.g., name@gmail.com).'
+        }, status=400)
+
+    # Rate limiting boundary: 60-second cooldown per email
+    recent_otp = PublicEmailOTP.objects.filter(
+        email__iexact=email,
+        created_at__gte=timezone.now() - datetime.timedelta(seconds=60)
+    ).first()
+    if recent_otp:
+        return JsonResponse({
+            'success': False,
+            'message': 'Please wait 60 seconds before requesting another verification code.'
+        }, status=429)
 
     # Invalidate previous unused OTPs for this email
     PublicEmailOTP.objects.filter(email__iexact=email, is_used=False).update(is_used=True)
@@ -132,6 +154,14 @@ def verify_otp_api(request):
             'message': 'Both email and 6-digit OTP code are required.'
         }, status=400)
 
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Please enter a valid email address.'
+        }, status=400)
+
     otp_record = PublicEmailOTP.objects.filter(
         email__iexact=email,
         is_used=False
@@ -199,24 +229,35 @@ def public_submit_view(request):
 
         if not full_name or len(full_name) < 2:
             errors.append('Full Name is required (minimum 2 characters).')
+        elif len(full_name) > 150:
+            errors.append('Full Name is too long (maximum 150 characters).')
 
-        if not mobile_number or len(mobile_number) < 10:
-            errors.append('A valid 10-digit Mobile Number is required.')
+        clean_mobile = re.sub(r'[\s\-\+\(\)]', '', mobile_number)
+        if not clean_mobile.isdigit() or len(clean_mobile) < 10 or len(clean_mobile) > 15:
+            errors.append('A valid 10 to 15 digit Mobile Number is required.')
 
         if not category_id:
             errors.append('Please select a Grievance Category.')
 
         if not title or len(title) < 5:
             errors.append('Complaint Title is required (minimum 5 characters).')
+        elif len(title) > 255:
+            errors.append('Complaint Title is too long (maximum 255 characters).')
 
         if not description or len(description) < 10:
             errors.append('Detailed Description is required (minimum 10 characters).')
+        elif len(description) > 10000:
+            errors.append('Detailed Description is too long (maximum 10,000 characters).')
 
         if not issue_location:
             errors.append('Campus / Location detail is required.')
+        elif len(issue_location) > 255:
+            errors.append('Campus / Location detail is too long (maximum 255 characters).')
 
         if not area:
             errors.append('Area / City / District is required.')
+        elif len(area) > 150:
+            errors.append('Area / City / District is too long (maximum 150 characters).')
 
         category = ComplaintCategory.objects.filter(id=category_id).first() if category_id else None
         if not category:
@@ -289,7 +330,7 @@ def public_submit_view(request):
                 created_by=None
             )
 
-            # Record initial ComplaintAction
+            # Record initial ComplaintAction (Privacy-hardened: no personal citizen PII in public action remark)
             ComplaintAction.objects.create(
                 complaint=complaint,
                 action_type=ComplaintAction.ActionType.CREATED,
@@ -297,7 +338,7 @@ def public_submit_view(request):
                 new_status=Complaint.Status.PENDING,
                 responsible_officer=None,
                 responsible_bureau=bureau,
-                remarks=f"Grievance registered via Online Public Portal by {full_name} ({email}) with verified Gmail OTP."
+                remarks="Grievance registered via Online Public Portal with verified Gmail OTP."
             )
 
             # Handle Evidence Uploads
@@ -390,26 +431,34 @@ def public_detail_view(request, complaint_no):
     """
     Public Status & Visual Timeline Page for a given Complaint ID.
     Shows current status badge, target institution, latest officer response, and chronological timeline.
+    Privacy boundary: Masks any personal emails or phone numbers from public view.
     """
-    clean_no = complaint_no.strip().upper()
+    clean_no = re.sub(r'[^A-Za-z0-9\-_]', '', str(complaint_no or '')).strip().upper()[:50]
     complaint = Complaint.objects.filter(complaint_no__iexact=clean_no).first()
 
     if not complaint:
         messages.error(
             request,
-            f"Complaint ID '{complaint_no}' was not found. Please verify your ID and try again."
+            f"Complaint ID '{clean_no or complaint_no}' was not found. Please verify your ID and try again."
         )
         return redirect('public:track')
 
     # Fetch chronological actions for timeline
-    actions = complaint.actions.all().order_by('-timestamp')
+    raw_actions = complaint.actions.all().order_by('-timestamp')
 
-    # Extract latest officer response or remark
+    # Mask citizen PII (emails/phones) in public timeline remarks
+    actions = []
     latest_response = ""
-    for action in actions:
-        if action.remarks and "Grievance registered via Online Public Portal" not in action.remarks:
-            latest_response = action.remarks
-            break
+    for action in raw_actions:
+        remarks = action.remarks or ''
+        # Redact any accidental citizen email or mobile number in public timeline
+        remarks = re.sub(r'[\w\.-]+@[\w\.-]+\.\w+', '[CONFIDENTIAL-EMAIL]', remarks)
+        remarks = re.sub(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', '[CONFIDENTIAL-PHONE]', remarks)
+        action.public_remarks = remarks
+        actions.append(action)
+
+        if not latest_response and remarks and "Grievance registered via Online Public Portal" not in remarks:
+            latest_response = remarks
 
     return render(request, 'public/detail.html', {
         'complaint': complaint,

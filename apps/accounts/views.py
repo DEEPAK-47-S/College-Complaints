@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm, ProfileForm, PasswordChangeForm
@@ -15,6 +16,16 @@ from .models import User, EmailOTP
 from apps.audit.services import log_audit_event
 
 logger = logging.getLogger('augis.security')
+
+def get_safe_redirect_url(request, candidate_url, default='dashboard:index'):
+    """Prevents Open Redirect (CWE-601) vulnerabilities by validating redirect destination."""
+    if candidate_url and url_has_allowed_host_and_scheme(
+        url=candidate_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure()
+    ):
+        return candidate_url
+    return default
 
 def send_user_otp(user, request):
     """Generates a secure 6-digit cryptographic OTP and dispatches it via email."""
@@ -64,12 +75,14 @@ def login_view(request):
     if request.method == 'POST':
         if form.is_valid():
             user = form.get_user()
+            raw_next = request.GET.get('next') or request.POST.get('next')
+            safe_next = get_safe_redirect_url(request, raw_next, 'dashboard:index')
             
             # Check if 2FA is active
             if getattr(settings, 'AUTH_2FA_ENABLED', True):
                 otp_code = send_user_otp(user, request)
                 request.session['pre_auth_user_id'] = str(user.id)
-                request.session['pre_auth_next'] = request.GET.get('next') or 'dashboard:index'
+                request.session['pre_auth_next'] = safe_next
                 
                 messages.info(
                     request,
@@ -88,8 +101,7 @@ def login_view(request):
                     request=request
                 )
                 messages.success(request, f"Welcome back, {user.display_name}!")
-                next_url = request.GET.get('next') or 'dashboard:index'
-                return redirect(next_url)
+                return redirect(safe_next)
         else:
             log_audit_event(
                 actor=None,
@@ -124,7 +136,8 @@ def verify_otp_view(request):
             # Log user in
             login(request, user)
 
-            next_url = request.session.pop('pre_auth_next', 'dashboard:index')
+            cached_next = request.session.pop('pre_auth_next', None)
+            safe_next = get_safe_redirect_url(request, cached_next, 'dashboard:index')
             request.session.pop('pre_auth_user_id', None)
 
             log_audit_event(
@@ -136,11 +149,25 @@ def verify_otp_view(request):
                 request=request
             )
             messages.success(request, f"Two-Factor Authentication verified. Welcome, {user.display_name}!")
-            return redirect(next_url)
+            return redirect(safe_next)
         else:
             if active_otp:
                 active_otp.attempts += 1
                 active_otp.save(update_fields=['attempts'])
+                if active_otp.attempts >= 5:
+                    messages.error(
+                        request,
+                        "Maximum verification attempts (5) reached. For security, this code is invalidated. Please request a new code."
+                    )
+                else:
+                    remaining = 5 - active_otp.attempts
+                    messages.error(
+                        request,
+                        f"Invalid or expired verification code. {remaining} attempt(s) remaining."
+                    )
+            else:
+                messages.error(request, "Invalid or expired verification code. Please check your email or request a new code.")
+
             log_audit_event(
                 actor=user,
                 event_type="LOGIN_FAILED_2FA",
@@ -149,7 +176,6 @@ def verify_otp_view(request):
                 change_summary={"username": user.username, "attempted_otp": entered_otp},
                 request=request
             )
-            messages.error(request, "Invalid or expired verification code. Please check your email or request a new code.")
 
     # Mask email for display: r***@aicte-india.org
     parts = user.email.split('@')
@@ -162,13 +188,22 @@ def verify_otp_view(request):
     })
 
 def resend_otp_view(request):
-    """Regenerates and resends a fresh 6-digit OTP code."""
+    """Regenerates and resends a fresh 6-digit OTP code with rate limit cooldown."""
     user_id = request.session.get('pre_auth_user_id')
     if not user_id:
         return redirect('accounts:login')
 
     user = User.objects.filter(id=user_id, is_active=True).first()
     if user:
+        # Check 60-second cooldown boundary
+        recent_otp = EmailOTP.objects.filter(
+            user=user,
+            created_at__gte=timezone.now() - datetime.timedelta(seconds=60)
+        ).first()
+        if recent_otp:
+            messages.warning(request, "Please wait at least 60 seconds before requesting another verification code.")
+            return redirect('accounts:verify_otp')
+
         otp_code = send_user_otp(user, request)
         messages.success(
             request,

@@ -165,9 +165,9 @@
                 <div class="timeline-item">
                     <div class="timeline-date">{{ action.timestamp|date:"F d, Y - h:i A" }}</div>
                     <div class="timeline-title">{{ action.get_action_type_display }}{% if action.new_status %} &bull; {{ action.new_status }}{% endif %}</div>
-                    {% if action.remarks %}
+                    {% if action.public_remarks or action.remarks %}
                     <div class="timeline-content">
-                        {{ action.remarks }}
+                        {{ action.public_remarks|default:action.remarks }}
                     </div>
                     {% endif %}
                 </div>
