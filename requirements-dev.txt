@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest>=8.0.0
+pytest-django>=4.8.0
+playwright>=1.40.0
+sentence-transformers>=2.5.0
