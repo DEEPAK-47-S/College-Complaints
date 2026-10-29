@@ -185,7 +185,7 @@
             {% endif %}
 
             <!-- Page Content Body -->
-            <div class="p-4 flex-grow-1">
+            <div class="{% if user.is_authenticated %}p-4{% else %}p-2 p-sm-4{% endif %} flex-grow-1">
                 <!-- System Flash Messages -->
                 {% if messages %}
                 <div class="container-fluid px-0 mb-3">
@@ -210,18 +210,19 @@
                 {% block content %}{% endblock %}
             </div>
 
+            {% if user.is_authenticated %}
             <!-- Footer -->
             <footer class="py-3 px-4 bg-white border-top text-center text-muted small mt-auto">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                     <div>
-                        <strong>AUGIS</strong> – Proposed Academic Prototype for AICTE Grievance Monitoring & Cross-Bureau Intelligence.
+                        <strong>AUGIS</strong> – Centralized Higher Education Grievance Monitoring & Cross-Bureau Intelligence.
                     </div>
                     <div>
-                        <span class="badge bg-secondary-subtle text-secondary me-2">Not an Official Endorsement</span>
-                        <span>© 2026 AICTE Unified Grievance Intelligence System</span>
+                        <span>&copy; {% now "Y" %} AICTE Unified Grievance Redressal System</span>
                     </div>
                 </div>
             </footer>
+            {% endif %}
         </main>
     </div>
 
