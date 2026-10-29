@@ -5,7 +5,11 @@
       "src": "wsgi_vercel.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.12"
+        "runtime": "python3.12",
+        "includeFiles": [
+          "templates/**",
+          "templates/**/*"
+        ]
       }
     },
     {

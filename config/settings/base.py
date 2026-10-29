@@ -58,7 +58,10 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [
+            str(BASE_DIR / 'templates'),
+            BASE_DIR / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -81,13 +84,15 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
     try:
         import dj_database_url
+        db_config = dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True
+        )
+        db_config['DISABLE_SERVER_SIDE_CURSORS'] = True
         DATABASES = {
-            'default': dj_database_url.config(
-                default=DATABASE_URL,
-                conn_max_age=600,
-                conn_health_checks=True,
-                ssl_require=True
-            )
+            'default': db_config
         }
     except ImportError:
         import urllib.parse as urlparse
@@ -102,7 +107,8 @@ if DATABASE_URL:
                 'PORT': url.port or '5432',
                 'OPTIONS': {
                     'sslmode': 'require',
-                }
+                },
+                'DISABLE_SERVER_SIDE_CURSORS': True,
             }
         }
 else:
