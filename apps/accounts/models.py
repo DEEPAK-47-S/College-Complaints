@@ -127,3 +127,25 @@ class EmailOTP(models.Model):
         from django.utils import timezone
         return not self.is_used and timezone.now() <= self.expires_at and self.attempts < 5
 
+class PublicEmailOTP(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(db_index=True)
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Public Email OTP'
+        verbose_name_plural = 'Public Email OTPs'
+
+    def __str__(self):
+        return f"Public OTP for {self.email} ({self.otp_code})"
+
+    @property
+    def is_valid(self):
+        from django.utils import timezone
+        return not self.is_used and timezone.now() <= self.expires_at and self.attempts < 5
+

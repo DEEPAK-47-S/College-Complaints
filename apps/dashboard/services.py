@@ -121,10 +121,35 @@ class DashboardMetricsService:
         ).order_by('-timestamp')[:8]
 
         # Urgent unread notifications for user
-        urgent_notifications = Notification.objects.filter(
+        urgent_notifications = list(Notification.objects.filter(
             recipient=user,
             is_read=False
-        ).select_related('related_complaint').order_by('-created_at')[:5]
+        ).select_related('related_complaint').order_by('-created_at')[:5])
+
+        # If logged-in user is Super Admin or Senior Management with no personal inbox items,
+        # surface the most critical system-wide unread operational alerts (Overdue SLA, Overlap, Escalation)
+        if not urgent_notifications and (user.is_super_admin or user.role in ['SENIOR_MGMT', 'COMPETENT_AUTH']):
+            raw_alerts = Notification.objects.filter(
+                notification_type__in=[
+                    Notification.Type.OVERDUE_ALERT,
+                    Notification.Type.OVERLAP_ALERT,
+                    Notification.Type.ESCALATION,
+                    Notification.Type.APPROACHING_SLA,
+                ],
+                is_read=False
+            ).select_related('related_complaint', 'related_coordination', 'recipient').order_by('-created_at')[:20]
+
+            # Deduplicate twin alerts dispatched to multiple bureau heads for the same incident
+            seen_titles = set()
+            deduped_alerts = []
+            for alert in raw_alerts:
+                key = (alert.notification_type, alert.title)
+                if key not in seen_titles:
+                    seen_titles.add(key)
+                    deduped_alerts.append(alert)
+                if len(deduped_alerts) >= 5:
+                    break
+            urgent_notifications = deduped_alerts
 
         return {
             'total_complaints': total,

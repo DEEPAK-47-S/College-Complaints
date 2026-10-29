@@ -1,0 +1,130 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}College Grievance Redressal Portal | Centralized Monitoring{% endblock %}</title>
+    
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Public Portal Custom Stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/public_portal.css' %}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="public-portal">
+    <!-- Navbar -->
+    <nav class="public-navbar">
+        <div class="container">
+            <a href="{% url 'public:index' %}" class="public-brand">
+                <div class="public-brand-icon">
+                    <i class="ph-bold ph-graduation-cap"></i>
+                </div>
+                <div class="brand-text-wrap">
+                    <span class="brand-main">COLLEGE GRIEVANCE PORTAL</span>
+                    <span class="brand-sub">Centralized Student & Public Redressal System</span>
+                </div>
+            </a>
+            
+            <div class="public-nav-links">
+                <a href="{% url 'public:index' %}" class="public-nav-item {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+                    <i class="ph ph-house"></i> Home
+                </a>
+                <a href="{% url 'public:submit' %}" class="btn btn-primary btn-sm">
+                    <i class="ph ph-plus-circle"></i> Submit Complaint
+                </a>
+                <a href="{% url 'public:track' %}" class="btn btn-outline btn-sm">
+                    <i class="ph ph-magnifying-glass"></i> Track Status
+                </a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-sm" style="border-color: #e2e8f0; color: #64748b;" title="AICTE & Case Officer Login">
+                    <i class="ph ph-lock-key"></i> Officer Login
+                </a>
+            </div>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation">
+                <i class="ph ph-list"></i>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Mobile Nav Drawer -->
+    <div class="mobile-nav-drawer" id="mobileNavDrawer">
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <a href="{% url 'public:index' %}" class="public-nav-item">
+                <i class="ph ph-house"></i> Home
+            </a>
+            <a href="{% url 'public:submit' %}" class="btn btn-primary btn-block">
+                <i class="ph ph-plus-circle"></i> Submit Complaint
+            </a>
+            <a href="{% url 'public:track' %}" class="btn btn-outline btn-block">
+                <i class="ph ph-magnifying-glass"></i> Track Status
+            </a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-block" style="border-color: #cbd5e1; color: #475569;">
+                <i class="ph ph-lock-key"></i> Officer Login
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="public-main">
+        <div class="public-container">
+            <!-- Flash / System Messages -->
+            {% if messages %}
+                <div style="margin-bottom: 1.5rem;">
+                    {% for message in messages %}
+                        <div class="portal-alert {% if message.tags == 'error' or message.tags == 'danger' %}portal-alert-danger{% elif message.tags == 'success' %}portal-alert-success{% elif message.tags == 'warning' %}portal-alert-warning{% else %}portal-alert-info{% endif %} animate-fade-in">
+                            {% if message.tags == 'success' %}
+                                <i class="ph-fill ph-check-circle" style="font-size: 1.25rem; margin-top: 2px;"></i>
+                            {% elif message.tags == 'error' or message.tags == 'danger' %}
+                                <i class="ph-fill ph-warning-circle" style="font-size: 1.25rem; margin-top: 2px;"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="ph-fill ph-warning" style="font-size: 1.25rem; margin-top: 2px;"></i>
+                            {% else %}
+                                <i class="ph-fill ph-info" style="font-size: 1.25rem; margin-top: 2px;"></i>
+                            {% endif %}
+                            <div style="flex: 1;">{{ message }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="public-footer">
+        <div class="public-container">
+            <p style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">Centralized College & Student Grievance Redressal Portal</p>
+            <p>Unified Technical Education Redressal & Oversight System (AUGIS)</p>
+            <p style="margin-top: 0.5rem; color: #94a3b8; font-size: 0.8rem;">
+                All submissions are directly routed and scrutinized under official oversight regulations.
+            </p>
+            <div style="margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1rem; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <span>&copy; {% now "Y" %} College Grievance Redressal System. All rights reserved.</span>
+                <a href="{% url 'accounts:login' %}" style="color: #64748b; font-size: 0.8rem;">Officer Access Portal</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Menu Script -->
+    <script>
+        const menuBtn = document.getElementById('mobileMenuBtn');
+        const navDrawer = document.getElementById('mobileNavDrawer');
+        if (menuBtn && navDrawer) {
+            menuBtn.addEventListener('click', () => {
+                navDrawer.style.display = navDrawer.style.display === 'block' ? 'none' : 'block';
+            });
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

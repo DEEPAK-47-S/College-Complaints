@@ -32,6 +32,8 @@ static_collected/
 # Media Uploads (keep directory structure)
 media_private/documents/*
 !media_private/documents/.gitkeep
+media_private/complaints_private/*
+!media_private/complaints_private/.gitkeep
 
 # Large distribution zip
 AUGIS_FINAL_COMPLETE.zip

@@ -4,7 +4,7 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', RedirectView.as_view(pattern_name='dashboard:index', permanent=False)),
+    path('', include('apps.complaints.public_urls', namespace='public')),
     path('accounts/', include('apps.accounts.urls', namespace='accounts')),
     path('institutions/', include('apps.institutions.urls', namespace='institutions')),
     path('complaints/', include('apps.complaints.urls', namespace='complaints')),

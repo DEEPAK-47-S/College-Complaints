@@ -243,6 +243,8 @@
                     </ul>
                 </div>
             </div>
+        </div>
+    </div>
 </div>
 
 <!-- Regional Distribution & High-Activity Institutions Row -->
@@ -397,43 +399,78 @@
 
     <!-- Urgent Alerts & SLA Breaches -->
     <div class="col-lg-5">
-        <div class="card card-augis h-100">
-            <div class="card-augis-header">
+        <div class="card card-augis h-100 shadow-sm border-0">
+            <div class="card-augis-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title h6 mb-0">
                     <i class="bi bi-bell-fill me-2 text-danger"></i>Urgent Alerts & Action Items
                 </h5>
-                <span class="badge bg-danger rounded-pill">{{ urgent_notifications|length }}</span>
+                {% if urgent_notifications %}
+                    <span class="badge bg-danger rounded-pill">
+                        <i class="bi bi-exclamation-circle me-1"></i>{{ urgent_notifications|length }} Urgent
+                    </span>
+                {% else %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                        <i class="bi bi-check-circle me-1"></i>All Clear
+                    </span>
+                {% endif %}
             </div>
             <div class="card-augis-body p-0">
                 <div class="list-group list-group-flush">
                     {% for n in urgent_notifications %}
-                    <div class="list-group-item p-3">
+                    <div class="list-group-item p-3 border-bottom">
                         <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                            <span class="badge bg-danger-subtle text-danger small">{{ n.get_notification_type_display }}</span>
-                            <small class="text-muted">{{ n.created_at|timesince }} ago</small>
+                            <span class="badge {% if n.notification_type == 'OVERDUE_ALERT' or n.notification_type == 'ESCALATION' %}bg-danger-subtle text-danger border border-danger-subtle{% elif n.notification_type == 'OVERLAP_ALERT' %}bg-warning-subtle text-warning-emphasis border border-warning-subtle{% else %}bg-primary-subtle text-primary border border-primary-subtle{% endif %} small">
+                                {{ n.get_notification_type_display }}
+                            </span>
+                            <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ n.created_at|timesince }} ago</small>
                         </div>
-                        <h6 class="mb-1 small fw-bold">{{ n.title }}</h6>
-                        <p class="mb-2 text-muted small">{{ n.message }}</p>
-                        {% if n.related_complaint %}
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a href="{% url 'complaints:detail' n.related_complaint.id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
-                                Inspect Case <i class="bi bi-arrow-right"></i>
+                        <h6 class="mb-1 small fw-bold text-dark">{{ n.title }}</h6>
+                        <p class="mb-2 text-muted small" style="line-height: 1.45;">{{ n.message }}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light-subtle">
+                            {% if n.related_complaint %}
+                            <a href="{% url 'complaints:detail' n.related_complaint.id %}" class="btn btn-outline-primary btn-sm py-1 px-2 fw-medium" style="font-size: 0.75rem;">
+                                Inspect Case <i class="bi bi-arrow-right ms-1"></i>
                             </a>
+                            {% elif n.related_coordination %}
+                            <a href="{% url 'coordination:detail' n.related_coordination.id %}" class="btn btn-outline-primary btn-sm py-1 px-2 fw-medium" style="font-size: 0.75rem;">
+                                Coordination Dossier <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted small" style="font-size: 0.75rem;">System Notice</span>
+                            {% endif %}
+                            
                             <form action="{% url 'notifications:mark_read' n.id %}" method="post" class="m-0">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-link text-muted btn-sm p-0" style="font-size: 0.75rem;">Dismiss</button>
+                                <button type="submit" class="btn btn-link text-muted btn-sm p-0 text-decoration-none" style="font-size: 0.75rem;">
+                                    <i class="bi bi-check2 me-1"></i>Dismiss
+                                </button>
                             </form>
                         </div>
-                        {% endif %}
                     </div>
                     {% empty %}
-                    <div class="text-center py-5 text-muted">
-                        <i class="bi bi-check-circle text-success fs-1 mb-2 d-block"></i>
-                        No pending urgent alerts. System SLA compliance is in order.
+                    <div class="text-center py-5 px-3">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3" style="width: 54px; height: 54px;">
+                            <i class="bi bi-shield-check fs-2"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">All Clear · No Urgent Actions</h6>
+                        <p class="text-muted small mb-3" style="max-width: 320px; margin: 0 auto;">
+                            All complaints within this jurisdiction are progressing within SLA limits. No pending emergency breaches.
+                        </p>
+                        <a href="{% url 'notifications:list' %}" class="btn btn-outline-secondary btn-sm" style="font-size: 0.8rem;">
+                            <i class="bi bi-bell me-1"></i>Notification Center
+                        </a>
                     </div>
                     {% endfor %}
                 </div>
             </div>
+            {% if urgent_notifications %}
+            <div class="card-footer bg-light py-2 text-center border-top">
+                <a href="{% url 'notifications:list' %}" class="text-decoration-none small text-muted fw-medium">
+                    View All Notifications in Center <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

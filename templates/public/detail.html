@@ -1,0 +1,187 @@
+{% extends "public/base_public.html" %}
+
+{% block content %}
+<div class="animate-fade-in" style="max-width: 840px; margin: 0 auto;">
+    
+    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <a href="{% url 'public:track' %}" class="btn btn-outline btn-sm">
+            <i class="ph ph-arrow-left"></i> Search Again
+        </a>
+        <button onclick="window.print()" class="btn btn-outline btn-sm" style="color: #64748b;">
+            <i class="ph ph-printer"></i> Print Status Summary
+        </button>
+    </div>
+
+    <!-- Main Grievance Summary Card -->
+    <div class="portal-card" style="margin-bottom: 1.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
+            <div>
+                <h2 style="font-weight: 800; font-size: 1.4rem; color: var(--primary-color); font-family: monospace; letter-spacing: 0.03em;">
+                    {{ complaint.complaint_no }}
+                </h2>
+                <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.25rem;">
+                    <i class="ph-bold ph-calendar-blank"></i> Registration Date: <strong>{{ complaint.date_received|date:"F d, Y" }}</strong>
+                </div>
+            </div>
+            
+            <!-- Status Badge -->
+            <div>
+                {% if complaint.current_status == 'PENDING' %}
+                    <span class="status-pill status-pill-pending">
+                        <i class="ph-bold ph-hourglass"></i> Pending Scrutiny
+                    </span>
+                {% elif complaint.current_status == 'UNDER_PROCESS' %}
+                    <span class="status-pill status-pill-process">
+                        <i class="ph-bold ph-gear ph-spin"></i> Under Inquiry
+                    </span>
+                {% elif complaint.current_status == 'TRANSFERRED' %}
+                    <span class="status-pill status-pill-transferred">
+                        <i class="ph-bold ph-arrows-left-right"></i> Transferred to Specialized Bureau
+                    </span>
+                {% elif complaint.current_status == 'ESCALATED' %}
+                    <span class="status-pill status-pill-escalated">
+                        <i class="ph-bold ph-warning"></i> Escalated to Competent Authority
+                    </span>
+                {% elif complaint.current_status == 'DISPOSED' %}
+                    <span class="status-pill status-pill-disposed">
+                        <i class="ph-bold ph-check-circle"></i> Resolved & Closed
+                    </span>
+                {% else %}
+                    <span class="status-pill status-pill-process">
+                        {{ complaint.get_current_status_display }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.25rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
+                {{ complaint.title }}
+            </h3>
+            <span style="display: inline-block; background: var(--primary-light); color: var(--primary-color); font-weight: 700; font-size: 0.82rem; padding: 0.3rem 0.75rem; border-radius: 9999px;">
+                {{ complaint.category.name }}
+            </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; background: #f8fafc; padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid #e2e8f0;">
+            <div>
+                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                    <i class="ph-fill ph-buildings"></i> Target College / Institution
+                </div>
+                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                    {{ complaint.institution.name }}
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.15rem;">
+                    {{ complaint.institution.district }}, {{ complaint.institution.state }}
+                </div>
+            </div>
+
+            <div>
+                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                    <i class="ph-fill ph-map-pin"></i> Campus Location
+                </div>
+                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                    {{ complaint.issue_location|default:complaint.institution.address }}
+                </div>
+                {% if complaint.area %}
+                <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.15rem;">
+                    Area: {{ complaint.area }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div>
+                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                    <i class="ph-fill ph-shield-check"></i> Handling Bureau
+                </div>
+                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                    {{ complaint.currently_assigned_bureau.name }} ({{ complaint.currently_assigned_bureau.code }})
+                </div>
+            </div>
+
+            <div>
+                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                    <i class="ph-fill ph-clock"></i> Targeted Resolution Date
+                </div>
+                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                    {% if complaint.expected_disposal_date %}
+                        {{ complaint.expected_disposal_date|date:"F d, Y" }}
+                    {% else %}
+                        Standard 30-Day Policy
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Officer Latest Response / Remarks -->
+        {% if latest_response or complaint.closure_remarks %}
+        <div class="portal-alert portal-alert-info mt-4" style="margin-top: 1.5rem;">
+            <i class="ph-fill ph-chat-circle-dots" style="font-size: 1.75rem; flex-shrink: 0; color: #2563eb;"></i>
+            <div>
+                <div style="font-weight: 700; font-size: 1rem; color: #1e40af; margin-bottom: 0.35rem;">
+                    Official Finding / Regulatory Order:
+                </div>
+                <div style="font-size: 0.95rem; line-height: 1.5; color: #1e293b;">
+                    {{ latest_response|default:complaint.closure_remarks }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Status Timeline Card -->
+    <div class="portal-card">
+        <h3 class="section-title">
+            <i class="ph-fill ph-clock-counter-clockwise"></i> Case Progress Timeline
+        </h3>
+        <p class="text-muted" style="font-size: 0.85rem; margin-top: -0.75rem; margin-bottom: 1.5rem;">
+            Chronological audit trail of all regulatory actions, notices, and progress milestones recorded for this grievance.
+        </p>
+        
+        <div class="timeline">
+            <!-- Current Status (Latest) -->
+            <div class="timeline-item active">
+                <div class="timeline-date">
+                    {{ complaint.last_action_date|date:"F d, Y - h:i A" }}
+                </div>
+                <div class="timeline-title" style="color: var(--primary-color);">
+                    Current State: {{ complaint.get_current_status_display }}
+                </div>
+                <div class="timeline-content">
+                    {% if latest_response %}
+                        {{ latest_response }}
+                    {% elif complaint.current_status == 'DISPOSED' %}
+                        The grievance has been fully investigated and formally disposed under regulatory guidelines.
+                    {% elif complaint.current_status == 'UNDER_PROCESS' %}
+                        Active inquiry in progress. Official notices or inspection mandates have been served to the institution.
+                    {% else %}
+                        Initial review completed. Case is queued for committee assignment and fact-finding inquiry.
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Historical Actions -->
+            {% for action in actions %}
+                <div class="timeline-item">
+                    <div class="timeline-date">{{ action.timestamp|date:"F d, Y - h:i A" }}</div>
+                    <div class="timeline-title">{{ action.get_action_type_display }}{% if action.new_status %} &bull; {{ action.new_status }}{% endif %}</div>
+                    {% if action.remarks %}
+                    <div class="timeline-content">
+                        {{ action.remarks }}
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            
+            <!-- Created Step -->
+            <div class="timeline-item">
+                <div class="timeline-date">{{ complaint.created_at|date:"F d, Y - h:i A" }}</div>
+                <div class="timeline-title">Grievance Registered via Public Portal</div>
+                <div class="timeline-content">
+                    Submitted via Online Web Portal with verified Gmail OTP authentication.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -116,6 +116,21 @@ class Complaint(models.Model):
     )
     disposed_at = models.DateTimeField(null=True, blank=True)
     closure_remarks = models.TextField(blank=True)
+    
+    # Public Complainant Details (Bilingual Grievance Portal)
+    complainant_name = models.CharField(max_length=150, blank=True, default='')
+    complainant_email = models.EmailField(blank=True, default='')
+    complainant_phone = models.CharField(max_length=20, blank=True, default='')
+    complainant_type = models.CharField(
+        max_length=50,
+        blank=True,
+        default='STUDENT',
+        help_text="Student, Faculty, Parent, or Public Complainant"
+    )
+    issue_location = models.CharField(max_length=255, blank=True, default='', help_text="Campus Block, Department, Lab, Hostel or Street Location")
+    area = models.CharField(max_length=150, blank=True, default='', help_text="Area / District / Ward")
+    is_email_verified = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -165,6 +180,7 @@ class ComplaintDocument(models.Model):
     uploader = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name='uploaded_documents'
     )

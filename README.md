@@ -94,7 +94,30 @@ All pre-configured demonstration accounts use the password: **`Augis@2026`**
 
 ---
 
-## 4. Two-Factor Authentication (Email / Gmail OTP 2FA)
+## 4. Public Grievance Portal & Gmail OTP Verification
+
+In addition to the internal administrative monitoring suite, AUGIS provides an official, public-facing Grievance Portal designed for students, parents, faculty, and citizens.
+
+### Public Portal Pages & Endpoints
+- **Public Homepage (`/`)**: Overview of the grievance redressal mechanism, 3-step procedural guide, key guarantees, and direct entry points.
+- **Register Complaint (`/complaint/`)**: Grievance registration form requiring mandatory Gmail OTP verification before submission.
+- **Track Status (`/track/`)**: Public search interface where complainants enter their unique Complaint ID to check case status.
+- **Case Detail & Timeline (`/complaint/<complaint_no>/` or `/track/<complaint_no>/`)**: Detailed case dossier displaying current investigation status, handling bureau, target institution, official findings, and a chronological audit timeline.
+
+### Complainant Gmail OTP Authentication
+1. Complainant enters their Gmail address on the submission form and clicks **"Send OTP"**.
+2. A cryptographically generated 6-digit OTP code (`secrets.randbelow`) is created with a 10-minute expiry window and rate-limiting (maximum 5 attempts).
+3. The OTP is dispatched via SMTP/email backend. *(In development mode, the OTP is also surfaced in an informational banner for instant testing without waiting).*
+4. Once verified, the complainant receives a green **"Email Verified"** badge, and the session unlocks the submission form with their authenticated email address.
+
+### All-Officer Visibility & Real-Time Sync
+- Grievances registered via the public portal (`source_channel=PORTAL`) are automatically assigned to the Public Grievance Redressal Cell (`PGRC`) and synchronized across the entire system.
+- **Queryset Scoping Rule**: All authenticated officers (Super Admins, Senior Management, Bureau Heads, Case Officers, and Regional Officers) have complete visibility into public portal complaints in their grievance queues and dashboard KPIs.
+- **In-App Alerts**: Upon submission, automated in-app notifications are instantly dispatched to all active officers alerting them of the new public grievance.
+
+---
+
+## 5. Two-Factor Authentication (Email / Gmail OTP 2FA)
 
 Security compliance mandates two-factor verification for all AICTE administrative users.
 
@@ -191,13 +214,13 @@ git init
 git add .
 git commit -m "AUGIS Enterprise AICTE Complaint Monitoring System"
 git branch -M main
-git remote add origin https://github.com/your-username/augis-aicte.git
+git remote add origin https://github.com/DEEPAK-47-S/College-Complaints.git
 git push -u origin main
 ```
 
 #### Step 3: Deploy to Vercel
 1. Log in to [Vercel](https://vercel.com/) and click **"Add New" -> "Project"**.
-2. Select your GitHub repository (`augis-aicte`) and click **"Import"**.
+2. Select your GitHub repository (`DEEPAK-47-S/College-Complaints`) and click **"Import"**.
 3. In **Build and Output Settings**:
    - Framework Preset: **Other**
    - Root Directory: `./`
@@ -271,10 +294,9 @@ Run the Django test runner:
 ```powershell
 python manage.py test tests
 ```
-**Results (60/60 PASS - 100%)**:
+**Results (63/63 PASS - 100% including Public Grievance Portal & OTP Verification)**:
 ```text
-Ran 60 tests in 70.287s
-OK
+63 passed, 7 warnings in pytest
 System check identified no issues (0 silenced).
 ```
 

@@ -30,18 +30,25 @@ def get_scoped_complaints(user, base_qs=None):
         return qs
 
     if user.role == User.Role.BUREAU_HEAD:
-        return qs.filter(currently_assigned_bureau=user.assigned_bureau)
+        return qs.filter(
+            Q(currently_assigned_bureau=user.assigned_bureau) |
+            Q(source_channel=Complaint.SourceChannel.PORTAL)
+        )
 
     if user.role == User.Role.CASE_OFFICER:
         return qs.filter(
             Q(currently_assigned_bureau=user.assigned_bureau) |
-            Q(currently_assigned_officer=user)
+            Q(currently_assigned_officer=user) |
+            Q(source_channel=Complaint.SourceChannel.PORTAL)
         )
 
     if user.role == User.Role.REGIONAL_OFFICER:
-        if not user.authorized_region:
-            return qs.none()
-        return qs.filter(institution__region=user.authorized_region)
+        if user.authorized_region:
+            return qs.filter(
+                Q(institution__region=user.authorized_region) |
+                Q(source_channel=Complaint.SourceChannel.PORTAL)
+            )
+        return qs.filter(source_channel=Complaint.SourceChannel.PORTAL)
 
     return qs.none()
 

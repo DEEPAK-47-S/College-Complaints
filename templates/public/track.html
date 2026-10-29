@@ -1,0 +1,38 @@
+{% extends "public/base_public.html" %}
+
+{% block content %}
+<div class="animate-fade-in" style="max-width: 620px; margin: 2.5rem auto;">
+    
+    <div class="portal-card">
+        <h2 class="section-title text-primary" style="border-bottom: none; justify-content: center; font-size: 1.5rem; text-align: center;">
+            <i class="ph-fill ph-magnifying-glass"></i> Track Grievance Status
+        </h2>
+        <p class="text-center text-muted" style="margin-top: -0.75rem; margin-bottom: 2rem; font-size: 0.95rem;">
+            Enter your official <strong>Complaint ID</strong> to view investigation progress, inquiry findings, and official orders.
+        </p>
+
+        <form method="POST" action="{% url 'public:track' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="complaint_id">
+                    Complaint ID <span style="color: var(--primary-color);">*</span>
+                </label>
+                <input type="text" class="form-control" id="complaint_id" name="complaint_id" required placeholder="e.g. AICTE-2026-PGRC-00053" style="text-transform: uppercase; font-size: 1.1rem; padding: 0.85rem 1rem; font-family: monospace; letter-spacing: 0.05em;" autofocus>
+                <span class="text-muted" style="font-size: 0.82rem; margin-top: 0.35rem; display: block;">
+                    Enter the unique identifier provided upon grievance registration.
+                </span>
+            </div>
+            
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary btn-block" style="font-size: 1.1rem; padding: 0.95rem;">
+                    <i class="ph-bold ph-arrow-right"></i> Track Status
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="text-center text-muted" style="font-size: 0.88rem; margin-top: 2rem;">
+        <i class="ph-fill ph-lock-key" style="color: var(--primary-color);"></i> Personal details remain confidential and protected. Only official action logs and resolution milestones are publicly verifiable.
+    </div>
+</div>
+{% endblock %}

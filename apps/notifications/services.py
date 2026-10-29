@@ -76,8 +76,30 @@ class NotificationService:
         return created_alerts
 
     @staticmethod
+    def notify_officers_new_public_complaint(complaint):
+        """
+        Dispatches in-app notifications to active Case Officers, Bureau Heads, and Admins
+        when a new public portal grievance is registered.
+        """
+        recipients = User.objects.filter(is_active=True).exclude(role=User.Role.COMPETENT_AUTH)
+        title = f"New Public Grievance: {complaint.complaint_no}"
+        msg = f"Public grievance registered for {complaint.institution.name} ({complaint.category.name}): '{complaint.title[:70]}'."
+        for officer in recipients:
+            NotificationService.send_notification(
+                recipient=officer,
+                notification_type=Notification.Type.ASSIGNMENT,
+                title=title,
+                message=msg,
+                complaint=complaint,
+                event_key=f"public_complaint:{officer.id}:{complaint.id}"
+            )
+
+    @staticmethod
     def mark_as_read(notification_id, user):
-        notification = Notification.objects.filter(id=notification_id, recipient=user).first()
+        if getattr(user, 'is_super_admin', False) or user.is_superuser:
+            notification = Notification.objects.filter(id=notification_id).first()
+        else:
+            notification = Notification.objects.filter(id=notification_id, recipient=user).first()
         if notification and not notification.is_read:
             notification.is_read = True
             notification.read_at = timezone.now()
