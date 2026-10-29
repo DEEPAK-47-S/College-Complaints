@@ -1,0 +1,737 @@
+{% extends 'base.html' %}
+{% block title %}Statutory Analytics & Audit Reports – AUGIS{% endblock %}
+
+{% block content %}
+<!-- Report Header Banner -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="h3 brand-font mb-0">Statutory Analytics & Audit Reports</h1>
+            <span class="badge bg-primary text-white">Problem Statement 2 Compliance</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            {% if user.role == 'REGIONAL_OFFICER' %}
+            <span class="badge bg-info text-dark me-1"><i class="bi bi-geo-alt-fill me-1"></i>{{ user.get_authorized_region_display }} Jurisdiction</span>
+            Dataset restricted to technical institutions and complaints under your regional clearance.
+            {% elif user.role == 'BUREAU_HEAD' %}
+            <span class="badge bg-primary text-white me-1"><i class="bi bi-building me-1"></i>{{ user.assigned_bureau.code }} Bureau Scope</span>
+            Dataset restricted to complaints assigned to your bureau.
+            {% else %}
+            Comprehensive national analytical intelligence across all 6 Bureaus and 8 Administrative Regions.
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'reports:export_csv' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary btn-sm shadow-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV
+        </a>
+        <a href="{% url 'reports:export_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm shadow-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        <a href="{% url 'reports:export_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-danger btn-sm shadow-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+        </a>
+    </div>
+</div>
+
+<!-- Global Scoped Filter Bar -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <input type="hidden" name="report_type" id="hiddenReportType" value="{{ report_type }}">
+            <div class="col-md-4">
+                <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" placeholder="Search Case ID, institution, or keyword...">
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if request.GET.status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="bureau" class="form-select form-select-sm">
+                    <option value="">All Bureaus</option>
+                    {% for b in bureaus %}
+                    <option value="{{ b.code }}" {% if request.GET.bureau == b.code %}selected{% endif %}>{{ b.code }} – {{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">Filter Data</button>
+                <a href="{% url 'reports:index' %}?report_type={{ report_type }}" class="btn btn-outline-secondary btn-sm" title="Clear Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 9 Statutory Report Navigation Tabs -->
+<ul class="nav nav-pills mb-4 gap-1 p-2 bg-white rounded-3 shadow-sm border" id="reportTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'bureau_wise' %}active{% endif %}" href="?report_type=bureau_wise">
+            <i class="bi bi-building me-1"></i>1. Bureau Caseload
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'region_wise' %}active{% endif %}" href="?report_type=region_wise">
+            <i class="bi bi-geo-alt me-1"></i>2. Region Distribution
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'institution_wise' %}active{% endif %}" href="?report_type=institution_wise">
+            <i class="bi bi-buildings me-1"></i>3. Institution Dockets
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'status_wise' %}active{% endif %}" href="?report_type=status_wise">
+            <i class="bi bi-pie-chart me-1"></i>4. Status Breakdown
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'ageing_analysis' %}active{% endif %}" href="?report_type=ageing_analysis">
+            <i class="bi bi-hourglass-split me-1"></i>5. Ageing Analysis
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'disposal_rate' %}active{% endif %}" href="?report_type=disposal_rate">
+            <i class="bi bi-speedometer2 me-1"></i>6. Disposal Rate
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'overlap_cases' %}active{% endif %}" href="?report_type=overlap_cases">
+            <i class="bi bi-cpu me-1"></i>7. Overlap Intelligence
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'monthly_performance' %}active{% endif %}" href="?report_type=monthly_performance">
+            <i class="bi bi-graph-up me-1"></i>8. Monthly Velocity
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link py-2 px-3 small fw-semibold {% if report_type == 'quarterly_performance' %}active{% endif %}" href="?report_type=quarterly_performance">
+            <i class="bi bi-calendar3 me-1"></i>9. Quarterly Review
+        </a>
+    </li>
+</ul>
+
+<!-- REPORT CONTENT MODULES -->
+
+<!-- Module 1: Bureau-wise Report -->
+{% if report_type == 'bureau_wise' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="h6 fw-bold mb-0"><i class="bi bi-building me-2 text-primary"></i>Bureau-Wise Caseload & Performance Audit</h5>
+            <small class="text-muted">Breakdown of grievance intake, ongoing investigation, inter-bureau transfers, escalations, and disposal efficiency per Bureau</small>
+        </div>
+        <span class="badge bg-light text-muted border">{{ bureau_data|length }} Bureaus Evaluated</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Bureau Code & Name</th>
+                        <th class="text-center">Total Ingested</th>
+                        <th class="text-center">Pending Intake</th>
+                        <th class="text-center">Under Process</th>
+                        <th class="text-center">Transferred Out</th>
+                        <th class="text-center">Escalated</th>
+                        <th class="text-center">Disposed & Closed</th>
+                        <th class="text-center">SLA Overdue</th>
+                        <th class="text-end">Disposal Rate (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bureau_data %}
+                    <tr>
+                        <td>
+                            <strong class="text-primary font-monospace">{{ b.bureau_code }}</strong>
+                            <div class="text-muted small">{{ b.bureau_name }}</div>
+                        </td>
+                        <td class="text-center fw-bold">{{ b.total }}</td>
+                        <td class="text-center"><span class="badge bg-warning-subtle text-dark">{{ b.pending }}</span></td>
+                        <td class="text-center"><span class="badge bg-info-subtle text-primary">{{ b.under_process }}</span></td>
+                        <td class="text-center"><span class="badge bg-light text-dark border">{{ b.transferred }}</span></td>
+                        <td class="text-center"><span class="badge bg-danger-subtle text-danger">{{ b.escalated }}</span></td>
+                        <td class="text-center"><span class="badge bg-success-subtle text-success">{{ b.disposed }}</span></td>
+                        <td class="text-center">
+                            {% if b.overdue > 0 %}
+                            <span class="badge bg-danger">{{ b.overdue }}</span>
+                            {% else %}
+                            <span class="text-muted small">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold {% if b.disposal_rate >= 50 %}text-success{% elif b.disposal_rate > 0 %}text-warning{% else %}text-muted{% endif %}">
+                            {{ b.disposal_rate }}%
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4 text-muted">No bureau data available.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Module 2: Region-wise Report -->
+{% elif report_type == 'region_wise' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="h6 fw-bold mb-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Regional Grievance Distribution & SLA Compliance Report</h5>
+            <small class="text-muted">Geographical concentration of complaints across AICTE Regional Jurisdictions</small>
+        </div>
+        <span class="badge bg-light text-muted border">8 Regional Offices</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Regional Office</th>
+                        <th class="text-center">Total Grievances</th>
+                        <th class="text-center">Active Investigations</th>
+                        <th class="text-center">Disposed Cases</th>
+                        <th class="text-center">Overdue Cases</th>
+                        <th class="text-end">SLA Compliance Rate (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in region_data %}
+                    <tr>
+                        <td>
+                            <strong class="text-dark">{{ r.region_name }}</strong>
+                            <div class="text-muted font-monospace small">Region Code: {{ r.region_code }}</div>
+                        </td>
+                        <td class="text-center fw-bold">{{ r.total }}</td>
+                        <td class="text-center"><span class="badge bg-warning-subtle text-dark">{{ r.active }}</span></td>
+                        <td class="text-center"><span class="badge bg-success-subtle text-success">{{ r.disposed }}</span></td>
+                        <td class="text-center">
+                            {% if r.overdue > 0 %}
+                            <span class="badge bg-danger">{{ r.overdue }}</span>
+                            {% else %}
+                            <span class="text-muted small">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold {% if r.compliance_rate >= 80 %}text-success{% elif r.compliance_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ r.compliance_rate }}%
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center py-4 text-muted">No regional data available.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Module 3: Institution-wise Report -->
+{% elif report_type == 'institution_wise' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="h6 fw-bold mb-0"><i class="bi bi-buildings me-2 text-primary"></i>Institution-Wise Grievance History & High-Frequency Docket</h5>
+            <small class="text-muted">Technical institutions indexed by AICTE Permanent ID with cumulative complaint volumes</small>
+        </div>
+        <span class="badge bg-light text-muted border">Top 50 High-Caseload Institutions</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Permanent ID</th>
+                        <th>Institution Name</th>
+                        <th>Region & Location</th>
+                        <th class="text-center">Total Lodged</th>
+                        <th class="text-center">Active Cases</th>
+                        <th class="text-center">Disposed Cases</th>
+                        <th class="text-center">Overdue</th>
+                        <th class="text-end">Dossier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inst in institution_data %}
+                    <tr>
+                        <td class="font-monospace text-primary fw-bold">{{ inst.institution__aicte_permanent_id }}</td>
+                        <td>
+                            <a href="{% url 'institutions:institution_360' inst.institution__id %}" class="fw-semibold text-decoration-none">
+                                {{ inst.institution__name }}
+                            </a>
+                        </td>
+                        <td class="small text-muted">{{ inst.institution__region }} · {{ inst.institution__district }}, {{ inst.institution__state }}</td>
+                        <td class="text-center fw-bold">{{ inst.total }}</td>
+                        <td class="text-center"><span class="badge bg-warning-subtle text-dark">{{ inst.active }}</span></td>
+                        <td class="text-center"><span class="badge bg-success-subtle text-success">{{ inst.disposed }}</span></td>
+                        <td class="text-center">
+                            {% if inst.overdue > 0 %}
+                            <span class="badge bg-danger">{{ inst.overdue }}</span>
+                            {% else %}
+                            <span class="text-muted small">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'institutions:institution_360' inst.institution__id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                360° View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center py-4 text-muted">No institution grievance records logged.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Module 4: Status-wise Report -->
+{% elif report_type == 'status_wise' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header">
+        <h5 class="h6 fw-bold mb-0"><i class="bi bi-pie-chart me-2 text-primary"></i>Status-Wise Grievance Distribution & Operational Health</h5>
+        <small class="text-muted">Lifecycle transition inventory across all active and concluded proceedings</small>
+    </div>
+    <div class="card-body">
+        <div class="row g-4 align-items-center mb-4">
+            <div class="col-md-5">
+                <div style="height: 240px;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="table-responsive">
+                    <table class="table table-augis mb-0">
+                        <thead>
+                            <tr>
+                                <th>Workflow Stage</th>
+                                <th class="text-center">Total Volume</th>
+                                <th class="text-end">Caseload Share (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in status_data.breakdown %}
+                            <tr>
+                                <td>
+                                    <span class="badge-status badge-{{ s.code|lower }} me-2">{{ s.label }}</span>
+                                </td>
+                                <td class="text-center fw-bold">{{ s.count }}</td>
+                                <td class="text-end font-monospace">{{ s.percentage }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Module 5: Pending Case Ageing Analysis -->
+{% elif report_type == 'ageing_analysis' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="h6 fw-bold mb-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Pending Case Ageing Analysis Report</h5>
+                <small class="text-muted">Statutory Ageing Formula: <code>Age = Current Date - Date of Receipt</code> (Evaluated across {{ ageing_data.total_active }} active cases)</small>
+            </div>
+            <span class="badge bg-warning text-dark">{{ ageing_data.total_active }} Active Cases Ageing</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4">
+            {% for b in ageing_data.brackets %}
+            <div class="col">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="badge bg-{{ b.badge }} mb-2">{{ b.label }}</div>
+                    <h3 class="h4 fw-bold mb-0 text-dark">{{ b.count }}</h3>
+                    <small class="text-muted font-monospace">{{ b.percentage }}% of active</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="alert alert-info border-info-subtle small mb-0">
+            <i class="bi bi-info-circle-fill me-2 text-info"></i>
+            <strong>Audit Insight:</strong> Cases exceeding 30 days require formal procedural inquiry under AICTE standard operating procedure. Cases in the <strong>&gt; 90 Days</strong> bracket are prioritized for Competent Authority review.
+        </div>
+    </div>
+</div>
+
+<!-- Module 6: Disposal Rate & Efficiency Report -->
+{% elif report_type == 'disposal_rate' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="h6 fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-primary"></i>Grievance Disposal Rate & Departmental Efficiency Benchmark</h5>
+                <small class="text-muted">Statutory Formula: <code>Disposal Rate (%) = (Total Disposed Cases / Total Received Cases) * 100</code></small>
+            </div>
+            <span class="badge bg-success fs-6">{{ disposal_data.overall_rate }}% National Disposal Rate</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Total Grievances Received</div>
+                    <h3 class="h3 fw-bold mb-0 text-primary">{{ disposal_data.total_cases }}</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Formally Disposed & Closed</div>
+                    <h3 class="h3 fw-bold mb-0 text-success">{{ disposal_data.total_disposed }}</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Cumulative Clearance Velocity</div>
+                    <h3 class="h3 fw-bold mb-0 text-dark">{{ disposal_data.overall_rate }}%</h3>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3">Bureau-Wise Disposal League Table</h6>
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Bureau</th>
+                        <th class="text-center">Total Docket</th>
+                        <th class="text-center">Disposed</th>
+                        <th class="text-end">Disposal Velocity (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in disposal_data.bureau_rates %}
+                    <tr>
+                        <td>
+                            <strong class="font-monospace text-primary">{{ b.bureau_code }}</strong> · {{ b.bureau_name }}
+                        </td>
+                        <td class="text-center fw-semibold">{{ b.total }}</td>
+                        <td class="text-center text-success fw-semibold">{{ b.disposed }}</td>
+                        <td class="text-end fw-bold {% if b.rate >= 50 %}text-success{% elif b.rate > 0 %}text-warning{% else %}text-muted{% endif %}">
+                            {{ b.rate }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Module 7: Overlap & Duplicate Case Intelligence Report -->
+{% elif report_type == 'overlap_cases' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="h6 fw-bold mb-0"><i class="bi bi-cpu me-2 text-primary"></i>Cross-Bureau Overlap & Redundant Grievance Intelligence</h5>
+            <small class="text-muted">AI-Assisted Hybrid Matching Engine audit: Multi-bureau institution overlaps and semantic allegation duplicates</small>
+        </div>
+        <span class="badge bg-purple text-white" style="background-color: #9333EA;">{{ overlap_data.total_pairs }} Detected Pairs</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="text-muted small mb-1">Pending Human Scrutiny</div>
+                    <h4 class="fw-bold text-warning mb-0">{{ overlap_data.pending }}</h4>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="text-muted small mb-1">Confirmed Related Cases</div>
+                    <h4 class="fw-bold text-success mb-0">{{ overlap_data.confirmed }}</h4>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="text-muted small mb-1">Dismissed (False Positives)</div>
+                    <h4 class="fw-bold text-secondary mb-0">{{ overlap_data.dismissed }}</h4>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border text-center">
+                    <div class="text-muted small mb-1">Cross-Bureau Involvements</div>
+                    <h4 class="fw-bold text-primary mb-0">{{ overlap_data.cross_bureau }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3">Priority Overlap Pairs Requiring Inter-Bureau Coordination</h6>
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Case A</th>
+                        <th>Case B</th>
+                        <th>Target Institution</th>
+                        <th>Overlap Type</th>
+                        <th class="text-center">Similarity Score</th>
+                        <th>Review Decision</th>
+                        <th class="text-end">Inspect</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cand in overlap_data.top_candidates %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'complaints:detail' cand.first_complaint.id %}" class="font-monospace fw-semibold text-decoration-none">
+                                {{ cand.first_complaint.complaint_no }}
+                            </a>
+                            <span class="badge bg-light text-muted border small">{{ cand.first_complaint.currently_assigned_bureau.code }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'complaints:detail' cand.second_complaint.id %}" class="font-monospace fw-semibold text-decoration-none">
+                                {{ cand.second_complaint.complaint_no }}
+                            </a>
+                            <span class="badge bg-light text-muted border small">{{ cand.second_complaint.currently_assigned_bureau.code }}</span>
+                        </td>
+                        <td>
+                            <div class="small fw-semibold text-truncate" style="max-width: 180px;">{{ cand.first_complaint.institution.name }}</div>
+                            <span class="font-monospace small text-muted">[{{ cand.first_complaint.institution.aicte_permanent_id }}]</span>
+                        </td>
+                        <td>
+                            {% if cand.is_cross_bureau %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-shuffle me-1"></i>Cross-Bureau</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border">Intra-Bureau</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center font-monospace fw-bold {% if cand.combined_score >= 0.7 %}text-danger{% elif cand.combined_score >= 0.5 %}text-warning{% else %}text-muted{% endif %}">
+                            {{ cand.percentage_score }}%
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ cand.get_review_status_display }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'intelligence:detail' cand.id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                Scrutiny
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center py-4 text-muted">No overlap candidates recorded.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Module 8: Monthly Performance Report -->
+{% elif report_type == 'monthly_performance' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header">
+        <h5 class="h6 fw-bold mb-0"><i class="bi bi-graph-up me-2 text-primary"></i>Monthly Grievance Intake vs. Disposal Velocity (12-Month Rolling Audit)</h5>
+        <small class="text-muted">Month-by-month analysis of new complaints lodged, disposals executed, and net pendency variance</small>
+    </div>
+    <div class="card-body">
+        <div style="height: 280px;" class="mb-4">
+            <canvas id="monthlyPerfChart"></canvas>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Calendar Month</th>
+                        <th class="text-center">Intake (Received)</th>
+                        <th class="text-center">Disposed & Closed</th>
+                        <th class="text-center">Net Backlog Variance</th>
+                        <th class="text-end">Monthly Disposal Rate (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in monthly_data %}
+                    <tr>
+                        <td class="fw-semibold">{{ m.month }}</td>
+                        <td class="text-center text-primary fw-bold">{{ m.intake }}</td>
+                        <td class="text-center text-success fw-bold">{{ m.disposed }}</td>
+                        <td class="text-center">
+                            {% if m.net_change > 0 %}
+                            <span class="badge bg-danger-subtle text-danger">+{{ m.net_change }} Pending</span>
+                            {% elif m.net_change < 0 %}
+                            <span class="badge bg-success-subtle text-success">{{ m.net_change }} Cleared</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border">Neutral (0)</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end font-monospace fw-bold {% if m.disposal_rate >= 50 %}text-success{% elif m.disposal_rate > 0 %}text-warning{% else %}text-muted{% endif %}">
+                            {{ m.disposal_rate }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Module 9: Quarterly Performance Report -->
+{% elif report_type == 'quarterly_performance' %}
+<div class="card card-augis shadow-sm mb-4">
+    <div class="card-augis-header">
+        <h5 class="h6 fw-bold mb-0"><i class="bi bi-calendar3 me-2 text-primary"></i>Quarterly Statutory Performance Review (Q1 – Q4)</h5>
+        <small class="text-muted">Quarterly aggregation for AICTE statutory review, executive council briefings, and ministry submissions</small>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Fiscal Quarter</th>
+                        <th class="text-center">Quarterly Intake</th>
+                        <th class="text-center">Quarterly Disposals</th>
+                        <th class="text-center">Quarterly Net Backlog</th>
+                        <th class="text-end">Statutory Clearance Index (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in quarterly_data %}
+                    <tr>
+                        <td>
+                            <strong class="text-primary font-monospace">{{ q.quarter }}</strong>
+                        </td>
+                        <td class="text-center fw-bold">{{ q.intake }}</td>
+                        <td class="text-center text-success fw-bold">{{ q.disposed }}</td>
+                        <td class="text-center">
+                            {% if q.net_backlog > 0 %}
+                            <span class="badge bg-danger-subtle text-danger">+{{ q.net_backlog }} Pending</span>
+                            {% elif q.net_backlog < 0 %}
+                            <span class="badge bg-success-subtle text-success">{{ q.net_backlog }} Cleared</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border">Neutral (0)</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold font-monospace {% if q.disposal_rate >= 50 %}text-success{% elif q.disposal_rate > 0 %}text-warning{% else %}text-muted{% endif %}">
+                            {{ q.disposal_rate }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Scoped Case Record Dataset Preview (First 25 Matched Records) -->
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="mb-0 fw-bold">Case Record Dataset Preview ({{ total_count }} Records Matched)</h6>
+            <span class="text-muted small">Real-time scoped PostgreSQL records ready for export</span>
+        </div>
+        <span class="badge bg-light text-muted border">Showing first 25 records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Case ID</th>
+                        <th>Institution Name</th>
+                        <th>Permanent ID</th>
+                        <th>Bureau</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Date Received</th>
+                        <th>Resolution Due</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in complaints %}
+                    <tr>
+                        <td class="font-monospace fw-semibold">
+                            <a href="{% url 'complaints:detail' c.id %}" class="text-decoration-none">{{ c.complaint_no }}</a>
+                        </td>
+                        <td>{{ c.institution.name }}</td>
+                        <td class="font-monospace small text-muted">{{ c.institution.aicte_permanent_id }}</td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">{{ c.currently_assigned_bureau.code }}</span></td>
+                        <td class="small">{{ c.category.name }}</td>
+                        <td><span class="badge-status badge-{{ c.current_status|lower }}">{{ c.get_current_status_display }}</span></td>
+                        <td class="small">{{ c.get_priority_display }}</td>
+                        <td class="small text-muted">{{ c.date_received|date:"Y-m-d" }}</td>
+                        <td class="small text-muted">{{ c.expected_disposal_date|default:'N/A' }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">No records match the current filter query.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    {% if report_type == 'status_wise' %}
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for s in status_data.breakdown %}'{{ s.label }}',{% endfor %}],
+            datasets: [{
+                data: [{% for s in status_data.breakdown %}{{ s.count }},{% endfor %}],
+                backgroundColor: ['#F59E0B', '#2563EB', '#8B5CF6', '#EF4444', '#10B981'],
+                borderWidth: 2,
+                borderColor: '#FFFFFF'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } }
+            },
+            cutout: '65%'
+        }
+    });
+    {% elif report_type == 'monthly_performance' %}
+    const monthlyCtx = document.getElementById('monthlyPerfChart').getContext('2d');
+    new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for m in monthly_data %}'{{ m.month }}',{% endfor %}],
+            datasets: [
+                {
+                    label: 'New Grievances (Intake)',
+                    data: [{% for m in monthly_data %}{{ m.intake }},{% endfor %}],
+                    backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Disposed & Resolved',
+                    data: [{% for m in monthly_data %}{{ m.disposed }},{% endfor %}],
+                    backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

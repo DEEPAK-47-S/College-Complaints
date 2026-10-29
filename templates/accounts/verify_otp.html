@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Verify Security OTP – AUGIS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card card-augis border-0 shadow-lg">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex p-3 rounded-circle bg-primary-subtle text-primary mb-3">
+                        <i class="bi bi-shield-lock-fill fs-1"></i>
+                    </div>
+                    <h3 class="brand-font fw-bold mb-1">Two-Factor Authentication</h3>
+                    <p class="text-muted small mb-2">AICTE Grievance Regulatory Access Control</p>
+                    <span class="badge bg-primary text-white py-1 px-2 small">{{ user_role }}</span>
+                </div>
+
+                <div class="alert alert-light border small text-muted mb-4 text-center">
+                    <i class="bi bi-envelope-check me-1 text-primary"></i>
+                    A 6-digit one-time password has been sent to your registered official email:
+                    <strong class="d-block text-dark mt-1 font-monospace">{{ masked_email }}</strong>
+                </div>
+
+                <form method="post" action="{% url 'accounts:verify_otp' %}" id="otpForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="otp_input" class="form-label small fw-semibold text-center w-100">
+                            Enter 6-Digit Verification Code
+                        </label>
+                        <input type="text" 
+                               name="otp" 
+                               id="otp_input" 
+                               maxlength="6" 
+                               pattern="\d{6}" 
+                               class="form-control form-control-lg text-center font-monospace fw-bold fs-3 letter-spacing-2" 
+                               placeholder="······" 
+                               autocomplete="one-time-code" 
+                               required 
+                               autofocus 
+                               style="letter-spacing: 0.35em;">
+                        <div class="form-text small text-center mt-2">
+                            <i class="bi bi-clock-history me-1"></i>Code expires in 10 minutes
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm mb-3" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+                        <i class="bi bi-check2-circle me-2"></i>Verify & Enter Dashboard
+                    </button>
+                </form>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top small">
+                    <a href="{% url 'accounts:resend_otp' %}" class="text-decoration-none fw-semibold">
+                        <i class="bi bi-arrow-repeat me-1"></i>Resend Code
+                    </a>
+                    <a href="{% url 'accounts:login' %}" class="text-muted text-decoration-none">
+                        <i class="bi bi-box-arrow-left me-1"></i>Back to Login
+                    </a>
+                </div>
+
+                <div class="mt-4 pt-2 text-center">
+                    <p class="text-muted small mb-0" style="font-size: 0.75rem;">
+                        <i class="bi bi-shield-check text-success me-1"></i>
+                        Session is protected by AICTE 2FA regulatory guidelines.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} – AUGIS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h1 class="h3 brand-font mb-1">{{ title }}</h1>
+                <p class="text-muted small mb-0">Record formal grievance and auto-trigger AI overlap inspection</p>
+            </div>
+            <a href="{% url 'complaints:list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Complaints
+            </a>
+        </div>
+
+        <div class="card card-augis shadow-sm">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">Case Ingestion Parameters</h6>
+            </div>
+            <div class="card-augis-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Target Institution <span class="text-danger">*</span></label>
+                            {{ form.institution }}
+                            <div class="form-text small">Select institution verified by AICTE Permanent ID</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Receiving Bureau / Cell <span class="text-danger">*</span></label>
+                            {{ form.currently_assigned_bureau }}
+                            <div class="form-text small">Initial handling department (e.g. RB, PGRC)</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Grievance Subject / Title <span class="text-danger">*</span></label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                            <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Grievance Category <span class="text-danger">*</span></label>
+                            {{ form.category }}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Priority Level <span class="text-danger">*</span></label>
+                            {{ form.priority }}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Intake Channel <span class="text-danger">*</span></label>
+                            {{ form.source_channel }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">External Reference No (Optional)</label>
+                            {{ form.external_reference_no }}
+                            <div class="form-text small">CPGRAMS Registration No., Court Diary No., or Inspection Order ref</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Comprehensive Grievance Narrative / Description <span class="text-danger">*</span></label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">Detailed factual allegations used by the NLP engine for cross-bureau overlap analysis</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{% url 'complaints:list' %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                        <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+                            <i class="bi bi-shield-check me-1"></i>Register Case & Run Overlap Engine
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

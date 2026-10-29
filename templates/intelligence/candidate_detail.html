@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}Overlap Inspection – {{ candidate.first_complaint.complaint_no }} & {{ candidate.second_complaint.complaint_no }} – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-purple text-white" style="background-color: #9333EA;">Explainable AI Inspection</span>
+            <span class="badge bg-light text-dark border">Model: {{ candidate.model_version }}</span>
+        </div>
+        <h1 class="h3 brand-font mb-0">Overlap Candidate Scrutiny Dossier</h1>
+        <p class="text-muted small mb-0">Target: <strong>{{ candidate.first_complaint.institution.name }}</strong> [{{ candidate.first_complaint.institution.aicte_permanent_id }}]</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'institutions:institution_360' candidate.first_complaint.institution.id %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-eye me-1"></i>Institution 360°
+        </a>
+        <a href="{% url 'intelligence:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Queue
+        </a>
+    </div>
+</div>
+
+<!-- Score and Matching Reasons Bar -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-4">
+        <div class="row align-items-center g-3">
+            <div class="col-md-3 text-center border-end">
+                <span class="text-muted small text-uppercase fw-bold d-block mb-1">Combined Overlap Index</span>
+                <div class="display-5 fw-bold {% if candidate.combined_score >= 0.7 %}text-danger{% elif candidate.combined_score >= 0.5 %}text-warning{% else %}text-primary{% endif %} brand-font">
+                    {{ candidate.percentage_score }}%
+                </div>
+                <div class="small text-muted">Cosine Sim: {{ candidate.semantic_similarity|floatformat:3 }}</div>
+            </div>
+            <div class="col-md-6 border-end">
+                <h6 class="small fw-bold text-uppercase text-muted mb-2">Explainable Evidence Breakdown</h6>
+                <ul class="list-unstyled mb-0 small">
+                    {% for reason in candidate.matching_reasons %}
+                    <li class="mb-1 d-flex align-items-start">
+                        <i class="bi bi-check2-circle text-primary me-2 mt-1"></i>
+                        <span>{{ reason }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="text-muted">Standard institutional identity match.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="col-md-3 text-center">
+                <span class="text-muted small text-uppercase fw-bold d-block mb-2">Review Status</span>
+                {% if candidate.review_status == 'CONFIRMED' %}
+                <span class="badge bg-success fs-6 py-2 px-3"><i class="bi bi-check-all me-1"></i>Confirmed Related</span>
+                {% elif candidate.review_status == 'DISMISSED' %}
+                <span class="badge bg-secondary fs-6 py-2 px-3">Dismissed (False-Positive)</span>
+                {% elif candidate.review_status == 'SEPARATE_ISSUES' %}
+                <span class="badge bg-info text-dark fs-6 py-2 px-3">Separate Issues</span>
+                {% else %}
+                <span class="badge bg-warning text-dark fs-6 py-2 px-3">Pending Human Review</span>
+                {% endif %}
+                {% if candidate.reviewed_by %}
+                <div class="text-muted small mt-2">
+                    Reviewed by {{ candidate.reviewed_by.display_name }} on {{ candidate.reviewed_at|date:"M d, Y" }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Google Gemini AI Deep Scrutiny Intelligence Card -->
+<div class="card card-augis mb-4 border-primary shadow-sm" style="background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);">
+    <div class="card-augis-header d-flex flex-wrap justify-content-between align-items-center gap-2" style="background: rgba(15, 45, 89, 0.03);">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-purple text-white" style="background-color: #6366F1;">
+                <i class="bi bi-stars me-1"></i>Google Gemini AI Scrutiny
+            </span>
+            <span class="badge bg-light text-dark border font-monospace small">{{ gemini_data.model_used }}</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% if gemini_data.conflict_risk == 'HIGH' %}
+            <span class="badge bg-danger py-1 px-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>High Cross-Bureau Conflict Risk</span>
+            {% elif gemini_data.conflict_risk == 'MEDIUM' %}
+            <span class="badge bg-warning text-dark py-1 px-2"><i class="bi bi-exclamation-circle me-1"></i>Moderate Conflict Risk</span>
+            {% else %}
+            <span class="badge bg-success-subtle text-success py-1 px-2"><i class="bi bi-check-circle me-1"></i>Low Conflict Risk</span>
+            {% endif %}
+            <a href="{% url 'intelligence:ai_analyze' candidate.id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                <i class="bi bi-arrow-clockwise me-1"></i>Run Fresh AI Scrutiny
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-robot text-primary me-2"></i>Executive AI Regulatory Justification</h6>
+                <p class="text-dark small mb-3" style="line-height: 1.6;">{{ gemini_data.executive_summary }}</p>
+                
+                <h6 class="fw-bold text-dark mb-2 small text-uppercase"><i class="bi bi-signpost-split text-info me-2"></i>Conflict Prevention & Actionable Next Steps</h6>
+                <ul class="list-group list-group-flush small border rounded-2">
+                    {% for step in gemini_data.coordination_steps %}
+                    <li class="list-group-item py-2 px-3 bg-white d-flex align-items-start">
+                        <i class="bi bi-arrow-right-circle-fill text-primary me-2 mt-1"></i>
+                        <span>{{ step }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="col-lg-4 border-start ps-lg-4">
+                <div class="p-3 bg-light rounded-3 border text-center mb-3">
+                    <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Recommended Lead Bureau</span>
+                    <h3 class="h4 fw-bold text-primary mb-0 font-monospace">{{ gemini_data.recommended_lead_bureau }}</h3>
+                    <small class="text-muted">Primary Responsibility</small>
+                </div>
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Classification</span>
+                    <span class="badge bg-primary text-white">{{ gemini_data.classification }}</span>
+                    <p class="small text-muted mt-2 mb-0">{{ gemini_data.conflict_reason }}</p>
+                </div>
+                {% if not is_gemini_live %}
+                <div class="small text-muted fst-italic">
+                    <i class="bi bi-info-circle me-1"></i>{{ gemini_data.note }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Side-by-Side Comparison Grid -->
+<div class="overlap-compare-grid mb-4">
+    <!-- Complaint A -->
+    <div class="card card-augis h-100">
+        <div class="card-augis-header bg-light">
+            <div>
+                <span class="badge bg-primary me-1">Case A</span>
+                <a href="{% url 'complaints:detail' first.id %}" class="fw-bold text-decoration-none">{{ first.complaint_no }}</a>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ first.currently_assigned_bureau.name }} ({{ first.currently_assigned_bureau.code }})</span>
+        </div>
+        <div class="card-augis-body">
+            <h5 class="h6 fw-bold text-dark mb-2">{{ first.title }}</h5>
+            <div class="p-3 bg-light rounded-2 border mb-3 small {% if not first_allowed %}text-muted fst-italic{% endif %}" style="white-space: pre-line; line-height: 1.5; min-height: 180px;">
+                {{ first_description }}
+                {% if not first_allowed %}
+                <div class="mt-2 text-warning small"><i class="bi bi-shield-lock me-1"></i>Narrative restricted under cross-bureau scrutiny boundary.</div>
+                {% endif %}
+            </div>
+            <div class="row g-2 small">
+                <div class="col-6">
+                    <span class="text-muted d-block">Category:</span>
+                    <strong>{{ first.category.name }}</strong>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted d-block">Status:</span>
+                    <span class="badge-status badge-{{ first.current_status|lower }}">{{ first.get_current_status_display }}</span>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted d-block">Date Received:</span>
+                    <span>{{ first.date_received|date:"M d, Y" }}</span>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted d-block">Officer Assigned:</span>
+                    <span>{{ first.currently_assigned_officer.display_name|default:'Unassigned' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complaint B -->
+    <div class="card card-augis h-100">
+        <div class="card-augis-header bg-light">
+            <div>
+                <span class="badge bg-secondary me-1">Case B</span>
+                {% if second_allowed %}
+                <a href="{% url 'complaints:detail' second.id %}" class="fw-bold text-decoration-none">{{ second.complaint_no }}</a>
+                {% else %}
+                <span class="fw-bold text-dark">{{ second.complaint_no }}</span>
+                {% endif %}
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ second.currently_assigned_bureau.name }} ({{ second.currently_assigned_bureau.code }})</span>
+        </div>
+        <div class="card-augis-body">
+            <h5 class="h6 fw-bold text-dark mb-2">{{ second.title }}</h5>
+            <div class="p-3 bg-light rounded-2 border mb-3 small {% if not second_allowed %}text-muted fst-italic{% endif %}" style="white-space: pre-line; line-height: 1.5; min-height: 180px;">
+                {{ second_description }}
+                {% if not second_allowed %}
+                <div class="mt-2 text-warning small"><i class="bi bi-shield-lock me-1"></i>Narrative restricted under cross-bureau scrutiny boundary.</div>
+                {% endif %}
+            </div>
+            <div class="row g-2 small">
+                <div class="col-6">
+                    <span class="text-muted d-block">Category:</span>
+                    <strong>{{ second.category.name }}</strong>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted d-block">Status:</span>
+                    <span class="badge-status badge-{{ second.current_status|lower }}">{{ second.get_current_status_display }}</span>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted d-block">Date Received:</span>
+                    <span>{{ second.date_received|date:"M d, Y" }}</span>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted d-block">Officer Assigned:</span>
+                    <span>{{ second.currently_assigned_officer.display_name|default:'Unassigned' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Human Officer Scrutiny Action Box -->
+{% if can_review %}
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header bg-light">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-person-gear me-2 text-primary"></i>Authorized Human Review Decisions</h6>
+    </div>
+    <div class="card-augis-body">
+        <form action="{% url 'intelligence:review_action' candidate.id %}" method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Regulatory Review Findings / Decision Remarks <span class="text-danger">*</span></label>
+                <textarea name="remarks" class="form-control" rows="3" placeholder="State reasons for confirming relationship, dismissing as false positive, or classifying as separate issues..." required>{{ candidate.review_remarks }}</textarea>
+                <div class="form-text small">AI offers decision support only; regulatory and coordination decisions require human officer confirmation.</div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                    <button type="submit" name="action" value="confirm" class="btn btn-success btn-sm px-3">
+                        <i class="bi bi-check2-circle me-1"></i>Confirm Related Issue
+                    </button>
+                    <button type="submit" name="action" value="separate" class="btn btn-info text-dark btn-sm px-3">
+                        <i class="bi bi-distribute-vertical me-1"></i>Mark as Separate Issues
+                    </button>
+                    <button type="submit" name="action" value="dismiss" class="btn btn-outline-secondary btn-sm px-3">
+                        <i class="bi bi-x-circle me-1"></i>Dismiss False Positive
+                    </button>
+                </div>
+                {% if candidate.review_status == 'CONFIRMED' %}
+                <a href="{% url 'coordination:create' %}?candidate_id={{ candidate.id }}" class="btn btn-primary btn-sm px-3 shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+                    <i class="bi bi-diagram-3 me-1"></i>Establish Joint Coordination Workspace
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,547 @@
+{% extends 'base.html' %}
+{% block title %}{{ complaint.complaint_no }} – AUGIS{% endblock %}
+
+{% block content %}
+<!-- Case Header Bar -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge bg-light text-primary border font-monospace fs-6">{{ complaint.complaint_no }}</span>
+                    <span class="badge-status badge-{{ complaint.current_status|lower }} fs-6">{{ complaint.get_current_status_display }}</span>
+                    <span class="badge bg-secondary-subtle text-secondary">{{ complaint.currently_assigned_bureau.name }} ({{ complaint.currently_assigned_bureau.code }})</span>
+                    {% if complaint.priority == 'URGENT' %}
+                    <span class="badge bg-danger">URGENT PRIORITY</span>
+                    {% elif complaint.priority == 'HIGH' %}
+                    <span class="badge bg-warning text-dark">HIGH PRIORITY</span>
+                    {% endif %}
+                    {% if complaint.is_overdue %}
+                    <span class="badge bg-danger pulse-badge"><i class="bi bi-exclamation-octagon me-1"></i>SLA OVERDUE</span>
+                    {% endif %}
+                </div>
+                <h1 class="h4 brand-font mb-1">{{ complaint.title }}</h1>
+                <div class="text-muted small">
+                    Target: <a href="{% url 'institutions:institution_360' complaint.institution.id %}" class="fw-semibold text-decoration-none">{{ complaint.institution.name }}</a>
+                    <span class="font-monospace text-secondary">[{{ complaint.institution.aicte_permanent_id }}]</span>
+                    &bull; Received on {{ complaint.date_received|date:"M d, Y" }}
+                    &bull; {{ complaint.days_open }} day{{ complaint.days_open|pluralize }} open
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'institutions:institution_360' complaint.institution.id %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-eye me-1"></i>Institution 360°
+                </a>
+
+                {% if can_modify %}
+                    <!-- Assign Officer -->
+                    {% if user.role == 'BUREAU_HEAD' or user.is_super_admin %}
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#assignModal">
+                        <i class="bi bi-person-check me-1"></i>Assign Officer
+                    </button>
+                    {% endif %}
+
+                    <!-- Update Status -->
+                    <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#transitionModal">
+                        <i class="bi bi-arrow-repeat me-1"></i>Update Status
+                    </button>
+
+                    <!-- Request Transfer -->
+                    <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#transferModal">
+                        <i class="bi bi-arrow-left-right me-1"></i>Transfer Case
+                    </button>
+
+                    <!-- Escalate -->
+                    <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#escalateModal">
+                        <i class="bi bi-arrow-up-circle me-1"></i>Escalate
+                    </button>
+                {% endif %}
+
+                <!-- Document Upload -->
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadDocModal" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+                    <i class="bi bi-upload me-1"></i>Attach File
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<ul class="nav nav-tabs mb-4 border-bottom" id="complaintTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'overview' %}active{% endif %}" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+            <i class="bi bi-info-circle me-1"></i>Overview
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'timeline' %}active{% endif %}" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab">
+            <i class="bi bi-clock-history me-1"></i>Action Timeline ({{ actions.count }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'documents' %}active{% endif %}" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab">
+            <i class="bi bi-files me-1"></i>Private Documents ({{ documents.count }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'overlaps' %}active{% endif %}" id="overlaps-tab" data-bs-toggle="tab" data-bs-target="#overlaps" type="button" role="tab">
+            <i class="bi bi-cpu me-1"></i>Overlap Intelligence ({{ overlaps.count }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'coordination' %}active{% endif %}" id="coordination-tab" data-bs-toggle="tab" data-bs-target="#coordination" type="button" role="tab">
+            <i class="bi bi-diagram-3 me-1"></i>Joint Coordination ({{ coordinations.count }})
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="complaintTabContent">
+    <!-- Tab 1: Overview -->
+    <div class="tab-pane fade {% if active_tab == 'overview' %}show active{% endif %}" id="overview" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card card-augis h-100">
+                    <div class="card-augis-header">
+                        <h6 class="mb-0 fw-bold">Grievance Narrative & Particulars</h6>
+                    </div>
+                    <div class="card-augis-body">
+                        <div class="p-3 bg-light rounded-3 mb-4 border">
+                            <h6 class="small fw-bold text-uppercase text-muted mb-2">Complainant Allegation Statement</h6>
+                            <p class="mb-0 text-dark" style="white-space: pre-line; line-height: 1.6;">{{ complaint.description }}</p>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">Grievance Classification</span>
+                                <span class="fw-semibold">{{ complaint.category.name }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">Intake Channel</span>
+                                <span class="fw-semibold">{{ complaint.get_source_channel_display }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">External Reference / Diary No</span>
+                                <span class="fw-semibold">{{ complaint.external_reference_no|default:'None' }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">Currently Assigned Officer</span>
+                                <span class="fw-semibold">{{ complaint.currently_assigned_officer.display_name|default:'Unassigned' }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">Expected Resolution Deadline (SLA)</span>
+                                <span class="fw-semibold {% if complaint.is_overdue %}text-danger fw-bold{% endif %}">
+                                    {{ complaint.expected_disposal_date|default:'Not Defined' }}
+                                    {% if complaint.is_overdue %} (Overdue){% endif %}
+                                </span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">Registered By</span>
+                                <span class="small">{{ complaint.created_by.display_name|default:'System' }} on {{ complaint.created_at|date:"M d, Y H:i" }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">Last Action Taken</span>
+                                {% if actions.first %}
+                                <span class="badge bg-light text-primary border me-1">{{ actions.first.get_action_type_display }}</span>
+                                <span class="small text-dark">{{ actions.first.remarks|truncatechars:50 }}</span>
+                                {% else %}
+                                <span class="small text-muted">No prior actions logged</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">Date & Time of Last Action</span>
+                                <span class="small fw-semibold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ complaint.last_action_date|date:"M d, Y H:i" }}</span>
+                            </div>
+                            <div class="col-12">
+                                <span class="text-muted small d-block">Next Action Required</span>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle py-1 px-2 fw-medium">
+                                    <i class="bi bi-arrow-right-circle me-1"></i>{{ complaint.next_action_required|default:'Detailed inquiry / regulatory review under process' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        {% if complaint.current_status == 'DISPOSED' %}
+                        <div class="alert alert-success mt-4 mb-0">
+                            <h6 class="alert-heading small fw-bold mb-1"><i class="bi bi-check-circle-fill me-1"></i>Formal Disposal Order Recorded</h6>
+                            <p class="mb-1 small">{{ complaint.closure_remarks }}</p>
+                            <small class="text-muted">Disposed at {{ complaint.disposed_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card card-augis h-100">
+                    <div class="card-augis-header">
+                        <h6 class="mb-0 fw-bold">Institution Snapshot</h6>
+                        <a href="{% url 'institutions:institution_360' complaint.institution.id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">360° View</a>
+                    </div>
+                    <div class="card-augis-body">
+                        <h6 class="fw-bold text-primary mb-1">{{ complaint.institution.name }}</h6>
+                        <div class="badge bg-light text-dark border font-monospace mb-3">{{ complaint.institution.aicte_permanent_id }}</div>
+
+                        <div class="mb-2">
+                            <span class="text-muted small d-block">Region & Discipline</span>
+                            <span class="small fw-medium">{{ complaint.institution.get_region_display }} &bull; {{ complaint.institution.get_institution_type_display }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <span class="text-muted small d-block">Campus Location</span>
+                            <span class="small">{{ complaint.institution.address }}, {{ complaint.institution.district }}, {{ complaint.institution.state }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <span class="text-muted small d-block">Operational Status</span>
+                            <span class="badge bg-success-subtle text-success">{{ complaint.institution.get_operational_status_display }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Action Timeline -->
+    <div class="tab-pane fade {% if active_tab == 'timeline' %}show active{% endif %}" id="timeline" role="tabpanel">
+        <div class="card card-augis shadow-sm">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">Chronological Case Movement & Action Ledger</h6>
+            </div>
+            <div class="card-augis-body">
+                <div class="timeline ps-3 border-start border-2 border-primary-subtle ms-3">
+                    {% for action in actions %}
+                    <div class="position-relative mb-4">
+                        <span class="position-absolute top-0 start-0 translate-middle p-2 bg-primary border border-light rounded-circle"></span>
+                        <div class="ps-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-light text-primary border fw-semibold">{{ action.get_action_type_display }}</span>
+                                <small class="text-muted">{{ action.timestamp|date:"M d, Y H:i" }}</small>
+                            </div>
+                            <p class="mb-1 text-dark">{{ action.remarks }}</p>
+                            <div class="small text-muted">
+                                Responsible: <strong>{{ action.responsible_officer.display_name|default:'System' }}</strong>
+                                {% if action.responsible_bureau %}({{ action.responsible_bureau.code }}){% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted py-3">No actions recorded on this case yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Private Documents -->
+    <div class="tab-pane fade {% if active_tab == 'documents' %}show active{% endif %}" id="documents" role="tabpanel">
+        <div class="card card-augis shadow-sm">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">Restricted Scrutiny Documents (Vault)</h6>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadDocModal">
+                    <i class="bi bi-upload me-1"></i>Upload Document
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-augis mb-0">
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Classification</th>
+                                <th>Size</th>
+                                <th>Uploaded By</th>
+                                <th>Upload Timestamp</th>
+                                <th>SHA-256 Checksum</th>
+                                <th class="text-end">Download</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>
+                                    <i class="bi {{ doc.icon_class }} fs-5 me-1"></i>
+                                    <strong>{{ doc.original_filename }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border small">{{ doc.get_visibility_classification_display }}</span>
+                                </td>
+                                <td class="small text-muted">{{ doc.file_size|filesizeformat }}</td>
+                                <td class="small">{{ doc.uploader.display_name|default:'Unknown' }}</td>
+                                <td class="small text-muted">{{ doc.upload_timestamp|date:"M d, Y H:i" }}</td>
+                                <td><code class="small text-muted">{{ doc.checksum|slice:":12" }}...</code></td>
+                                <td class="text-end">
+                                    <a href="{% url 'complaints:download_document' complaint.id doc.id %}" class="btn btn-sm btn-outline-primary py-0 px-2">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">No documents uploaded to this case.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 4: Overlaps & Relations -->
+    <div class="tab-pane fade {% if active_tab == 'overlaps' %}show active{% endif %}" id="overlaps" role="tabpanel">
+        <div class="card card-augis shadow-sm">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">Intelligent Overlap Candidates</h6>
+                <a href="{% url 'intelligence:dashboard' %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">Overlap Center</a>
+            </div>
+            <div class="card-augis-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-augis mb-0">
+                        <thead>
+                            <tr>
+                                <th>Paired Case ID</th>
+                                <th>Handling Bureau</th>
+                                <th>Combined Score</th>
+                                <th>Semantic Match</th>
+                                <th>Review Status</th>
+                                <th class="text-end">Inspector</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cand in overlaps %}
+                            {% with other=cand.first_complaint %}
+                            {% if cand.first_complaint == complaint %}{% with other=cand.second_complaint %}{% endwith %}{% endif %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'complaints:detail' other.id %}" class="fw-semibold text-decoration-none">
+                                        {{ other.complaint_no }}
+                                    </a>
+                                    <div class="text-muted small text-truncate" style="max-width: 220px;">{{ other.title }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary">{{ other.currently_assigned_bureau.code }}</span>
+                                    {% if other.currently_assigned_bureau != complaint.currently_assigned_bureau %}
+                                    <span class="badge bg-warning-subtle text-warning small ms-1">Cross-Bureau</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-bold {% if cand.combined_score >= 0.7 %}text-danger{% elif cand.combined_score >= 0.5 %}text-warning{% else %}text-muted{% endif %}">
+                                        {{ cand.percentage_score }}%
+                                    </div>
+                                </td>
+                                <td class="small">{{ cand.semantic_similarity|floatformat:2 }}</td>
+                                <td>
+                                    {% if cand.review_status == 'CONFIRMED' %}
+                                    <span class="badge bg-success-subtle text-success">Confirmed Related</span>
+                                    {% elif cand.review_status == 'DISMISSED' %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Dismissed</span>
+                                    {% elif cand.review_status == 'SEPARATE_ISSUES' %}
+                                    <span class="badge bg-info-subtle text-info">Separate Issues</span>
+                                    {% else %}
+                                    <span class="badge bg-warning-subtle text-warning">Pending Review</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'intelligence:detail' cand.id %}" class="btn btn-sm btn-outline-primary py-0 px-2">
+                                        Inspect Overlap <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No overlap candidates detected for this case.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 5: Coordination -->
+    <div class="tab-pane fade {% if active_tab == 'coordination' %}show active{% endif %}" id="coordination" role="tabpanel">
+        <div class="card card-augis shadow-sm">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">Active Cross-Bureau Coordination Workspaces</h6>
+                <a href="{% url 'coordination:create' %}?complaint_id={{ complaint.id }}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                    <i class="bi bi-plus me-1"></i>Establish Joint Coordination
+                </a>
+            </div>
+            <div class="card-augis-body">
+                {% for coord in coordinations %}
+                <div class="card border p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="badge bg-primary-subtle text-primary font-monospace">{{ coord.coordination_no }}</span>
+                            <h6 class="d-inline ms-2 fw-bold mb-0">{{ coord.title }}</h6>
+                        </div>
+                        <span class="badge bg-light text-dark border">{{ coord.get_coordination_status_display }}</span>
+                    </div>
+                    <p class="small text-muted mb-2">Lead Bureau: <strong>{{ coord.coordinating_bureau.code }}</strong></p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Deadline: {{ coord.deadline|default:'N/A' }}</small>
+                        <a href="{% url 'coordination:detail' coord.id %}" class="btn btn-sm btn-outline-primary py-0 px-3">Open Workspace</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-center text-muted py-4 mb-0">This complaint is not currently enrolled in a joint inter-bureau coordination workspace.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for Workflow Actions -->
+{% if can_modify %}
+<!-- Modal: Assign Officer -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6 fw-bold">Assign Case Officer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'complaints:assign' complaint.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Designate Case Officer</label>
+                        {{ assign_form.officer }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Assignment Remarks</label>
+                        {{ assign_form.remarks }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Confirm Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Status Transition -->
+<div class="modal fade" id="transitionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6 fw-bold">Update Complaint Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'complaints:transition' complaint.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">New Workflow Status</label>
+                        {{ transition_form.new_status }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Next Action Required (Optional)</label>
+                        {{ transition_form.next_action_required }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Regulatory Action Remarks (Mandatory)</label>
+                        {{ transition_form.remarks }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">Submit Transition</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Request Transfer -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6 fw-bold">Request Inter-Bureau Transfer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'complaints:transfer' complaint.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Destination Bureau</label>
+                        {{ transfer_form.destination_bureau }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Transfer Justification</label>
+                        {{ transfer_form.reason }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm">Submit Transfer Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Escalate Case -->
+<div class="modal fade" id="escalateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6 fw-bold">Escalate to Higher Authority</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'complaints:escalate' complaint.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Escalation Level</label>
+                        {{ escalate_form.escalation_level }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Escalation Grounds & Justification</label>
+                        {{ escalate_form.reason }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Confirm Escalation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal: Upload Document -->
+<div class="modal fade" id="uploadDocModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6 fw-bold">Upload Supporting Evidence / Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'complaints:upload_document' complaint.id %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Select File</label>
+                        {{ document_form.file }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Security Classification</label>
+                        {{ document_form.classification }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Upload to Vault</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

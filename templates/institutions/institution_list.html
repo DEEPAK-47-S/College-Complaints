@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Institutions Registry – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 brand-font mb-1">Institutions Registry</h1>
+        <p class="text-muted small mb-0">
+            {% if user.role == 'REGIONAL_OFFICER' %}
+            <span class="badge bg-info text-dark me-1"><i class="bi bi-geo-alt-fill me-1"></i>{{ user.get_authorized_region_display }} Jurisdiction</span>
+            Showing institutions strictly within your regional jurisdiction.
+            {% else %}
+            Central repository of verified technical institutions with AICTE Permanent ID indexing
+            {% endif %}
+        </p>
+    </div>
+    {% if user.role != 'SENIOR_MGMT' and user.role != 'COMPETENT_AUTH' %}
+    <a href="{% url 'institutions:create' %}" class="btn btn-primary btn-sm shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+        <i class="bi bi-plus-lg me-1"></i>Register Institution
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filters Card -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search by name, AICTE Permanent ID, city...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="region" class="form-select form-select-sm">
+                    <option value="">All Regions</option>
+                    {% for code, label in regions %}
+                    <option value="{{ code }}" {% if region_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    {% for code, label in types %}
+                    <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% url 'institutions:list' %}" class="btn btn-outline-secondary btn-sm" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Institutions Table -->
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header">
+        <h6 class="mb-0 fw-bold">Institutions Listing ({{ total_count }})</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Permanent ID</th>
+                        <th>Institution Name</th>
+                        <th>Region & State</th>
+                        <th>Discipline Type</th>
+                        <th>Operational Status</th>
+                        <th class="text-end">Intelligence Views</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inst in page_obj %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-light text-primary border font-monospace fw-bold">{{ inst.aicte_permanent_id }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'institutions:detail' inst.id %}" class="fw-semibold text-decoration-none">
+                                {{ inst.name }}
+                            </a>
+                            <div class="text-muted small">{{ inst.district }}, {{ inst.state }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary small">{{ inst.get_region_display }}</span>
+                        </td>
+                        <td class="small text-muted">
+                            {{ inst.get_institution_type_display }}
+                        </td>
+                        <td>
+                            {% if inst.operational_status == 'ACTIVE' %}
+                            <span class="badge bg-success-subtle text-success small">Approved</span>
+                            {% elif inst.operational_status == 'UNDER_SCRUTINY' %}
+                            <span class="badge bg-warning-subtle text-warning small">Scrutiny</span>
+                            {% elif inst.operational_status == 'APPROVAL_WITHHELD' %}
+                            <span class="badge bg-danger-subtle text-danger small">Withheld</span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary small">{{ inst.get_operational_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'institutions:institution_360' inst.id %}" class="btn btn-sm btn-outline-primary py-1 px-2" title="Consolidated Institution 360° Dossier">
+                                <i class="bi bi-eye me-1"></i>360° Dossier
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="bi bi-building-slash fs-1 d-block mb-2 text-secondary"></i>
+                            No institutions match the specified query filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top p-3">
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

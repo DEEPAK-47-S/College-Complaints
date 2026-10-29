@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} – AUGIS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h1 class="h3 brand-font mb-1">{{ title }}</h1>
+                <p class="text-muted small mb-0">Harmonize cross-bureau proceedings and eliminate conflicting regulatory actions</p>
+            </div>
+            <a href="{% url 'coordination:list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+        </div>
+
+        <div class="card card-augis shadow-sm">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">Joint Coordination Parameters</h6>
+            </div>
+            <div class="card-augis-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Coordination Subject / Title <span class="text-danger">*</span></label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                            <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Lead Coordinating Bureau <span class="text-danger">*</span></label>
+                            {{ form.coordinating_bureau }}
+                            <div class="form-text small">Primary unit responsible for scheduling and final report consolidation</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Resolution Target Deadline</label>
+                            {{ form.deadline }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Participating Bureaus & Units <span class="text-danger">*</span></label>
+                            {{ form.participating_bureaus }}
+                            <div class="form-text small">Hold Ctrl/Cmd to select multiple participating Bureaus</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Linked Grievances / Complaints <span class="text-danger">*</span></label>
+                            {{ form.complaints }}
+                            <div class="form-text small">Hold Ctrl/Cmd to select multiple related complaints</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Joint Action Plan / Milestone Outline</label>
+                            {{ form.action_plan }}
+                            <div class="form-text small">Specify proposed joint inspection, record scrutiny, or evidence exchange steps</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{% url 'coordination:list' %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                        <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+                            <i class="bi bi-diagram-3 me-1"></i>Establish Joint Workspace
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

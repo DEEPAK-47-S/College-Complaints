@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}User Management – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 brand-font mb-1">User Directory & Roles</h1>
+        <p class="text-muted small mb-0">Role-based access control and organizational bureau scoping</p>
+    </div>
+    <a href="{% url 'admin_panel:audit_list' %}" class="btn btn-outline-secondary btn-sm">Audit Ledger</a>
+</div>
+
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header">
+        <h6 class="mb-0 fw-bold">Active User Accounts</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Display Name</th>
+                        <th>Role</th>
+                        <th>Assigned Bureau</th>
+                        <th>Authorized Region</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in page_obj %}
+                    <tr>
+                        <td class="font-monospace fw-semibold">{{ u.username }}</td>
+                        <td>{{ u.display_name }}<div class="text-muted small">{{ u.email }}</div></td>
+                        <td><span class="badge bg-primary">{{ u.get_role_display }}</span></td>
+                        <td>{{ u.assigned_bureau.name|default:'Multi-Bureau / Global' }}</td>
+                        <td>{{ u.get_authorized_region_display|default:'All Regions' }}</td>
+                        <td>
+                            {% if u.is_active %}
+                            <span class="badge bg-success-subtle text-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">{{ u.created_at|date:"Y-m-d" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No users found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top p-3">
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

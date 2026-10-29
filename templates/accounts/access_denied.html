@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Access Denied – AUGIS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center py-5">
+    <div class="col-md-7 col-lg-6 text-center">
+        <div class="mb-4">
+            <span class="d-inline-flex p-4 rounded-circle bg-danger-subtle text-danger mb-3">
+                <i class="bi bi-shield-x fs-1"></i>
+            </span>
+            <h2 class="brand-font fw-bold text-danger">403 – Access Denied</h2>
+            <p class="text-muted">
+                Your current role (<strong>{{ user.get_role_display|default:'Anonymous' }}</strong>) 
+                does not possess the required regulatory authority or jurisdictional scope to access this resource.
+            </p>
+        </div>
+        <div class="card card-augis text-start p-4 mb-4">
+            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1 text-primary"></i>Why did this happen?</h6>
+            <ul class="text-muted small ps-3 mb-0">
+                <li>You attempted an operation outside your assigned Bureau or Region boundary.</li>
+                <li>Write mutations are restricted strictly to designated case officers or approving Bureau Heads.</li>
+                <li>Restricted complaints and documents are gated by object-level permission verification.</li>
+            </ul>
+        </div>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'dashboard:index' %}" class="btn btn-primary px-4">
+                <i class="bi bi-speedometer2 me-1"></i>Return to Dashboard
+            </a>
+            <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                View My Scope
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

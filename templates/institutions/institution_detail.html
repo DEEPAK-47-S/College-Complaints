@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ institution.name }} – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 brand-font mb-0">{{ institution.name }}</h1>
+            <span class="badge bg-light text-primary border font-monospace">{{ institution.aicte_permanent_id }}</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-geo-alt me-1"></i>{{ institution.district }}, {{ institution.state }} ({{ institution.get_region_display }})
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'institutions:institution_360' institution.id %}" class="btn btn-primary btn-sm shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+            <i class="bi bi-eye me-1"></i>Open Institution 360° Dossier
+        </a>
+        {% if user.role == 'SUPER_ADMIN' or user.role == 'BUREAU_HEAD' %}
+        <a href="{% url 'institutions:edit' institution.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit Profile
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Institution Profile Card -->
+    <div class="col-lg-4">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">General Information</h6>
+                <span class="badge bg-success-subtle text-success small">{{ institution.get_operational_status_display }}</span>
+            </div>
+            <div class="card-augis-body">
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Discipline</span>
+                    <span class="fw-semibold">{{ institution.get_institution_type_display }}</span>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Campus Address</span>
+                    <span>{{ institution.address }}</span>
+                    <div class="text-muted small">PIN: {{ institution.pincode }}</div>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Contact Details</span>
+                    <div><i class="bi bi-envelope me-1 text-muted"></i>{{ institution.contact_email|default:'Not provided' }}</div>
+                    <div><i class="bi bi-telephone me-1 text-muted"></i>{{ institution.contact_phone|default:'Not provided' }}</div>
+                </div>
+                <div class="pt-2 border-top">
+                    <span class="text-muted small d-block">System Registration Date</span>
+                    <span class="small">{{ institution.created_at|date:"M d, Y" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Complaints & History -->
+    <div class="col-lg-8">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold">Recent Grievances Registered (AICTE)</h6>
+                <a href="{% url 'complaints:create' %}?institution={{ institution.id }}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                    <i class="bi bi-plus me-1"></i>Add Case
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-augis mb-0">
+                        <thead>
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Subject</th>
+                                <th>Bureau</th>
+                                <th>Status</th>
+                                <th>Date Received</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in recent_complaints %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'complaints:detail' c.id %}" class="fw-semibold text-decoration-none">
+                                        {{ c.complaint_no }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="text-truncate fw-medium" style="max-width: 220px;">{{ c.title }}</div>
+                                    <span class="badge bg-light text-muted border small">{{ c.category.name }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary">{{ c.currently_assigned_bureau.code }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge-status badge-{{ c.current_status|lower }}">{{ c.get_current_status_display }}</span>
+                                </td>
+                                <td class="small text-muted">
+                                    {{ c.date_received|date:"M d, Y" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No complaints recorded against this institution.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

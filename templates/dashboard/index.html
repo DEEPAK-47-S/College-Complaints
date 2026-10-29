@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+{% block title %}Executive Intelligence Dashboard – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="h3 brand-font mb-0">
+                {% if user.is_super_admin %}
+                    Unified System Command Center
+                {% elif user.role == 'BUREAU_HEAD' %}
+                    {{ user.assigned_bureau.name }} Command Dashboard
+                {% elif user.role == 'CASE_OFFICER' %}
+                    Case Officer Investigation Workspace
+                {% elif user.role == 'REGIONAL_OFFICER' %}
+                    {{ user.get_authorized_region_display }} Region Oversight Dashboard
+                {% elif user.role == 'SENIOR_MGMT' %}
+                    Executive Management & Strategic Intelligence
+                {% elif user.role == 'COMPETENT_AUTH' %}
+                    Competent Authority Statutory Review
+                {% else %}
+                    Unified Grievance Intelligence Dashboard
+                {% endif %}
+            </h1>
+            <span class="badge {% if user.is_super_admin %}bg-danger{% elif user.role == 'BUREAU_HEAD' %}bg-primary{% elif user.role == 'CASE_OFFICER' %}bg-info text-dark{% elif user.role == 'REGIONAL_OFFICER' %}bg-success{% elif user.role == 'SENIOR_MGMT' %}bg-warning text-dark{% elif user.role == 'COMPETENT_AUTH' %}bg-dark{% else %}bg-secondary{% endif %}">
+                {{ user.get_role_display }}
+                {% if user.assigned_bureau %} · {{ user.assigned_bureau.code }}{% endif %}
+                {% if user.authorized_region %} · {{ user.get_authorized_region_display }}{% endif %}
+            </span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            {% if user.is_super_admin %}
+                National oversight across all 6 Bureaus and 8 Regions. Master system administration, user roles, and immutable audit ledger.
+            {% elif user.role == 'BUREAU_HEAD' %}
+                Departmental operations for {{ user.assigned_bureau.name }}. Officer assignments, transfer approvals, and cross-bureau overlap scrutiny.
+            {% elif user.role == 'CASE_OFFICER' %}
+                Grievance scrutiny and inquiry management for {{ user.assigned_bureau.name }}. Upload scrutiny documents, post timeline notes, and resolve cases within SLA.
+            {% elif user.role == 'REGIONAL_OFFICER' %}
+                Jurisdictional oversight for institutions and grievances located in {{ user.get_authorized_region_display }} Region.
+            {% elif user.role == 'SENIOR_MGMT' %}
+                Consolidated multi-bureau analytics, intake vs. disposal velocity, bottleneck tracking, and high-level reporting exports.
+            {% elif user.role == 'COMPETENT_AUTH' %}
+                Appellate statutory authority for escalated disputes, inter-departmental deadlocks, and final disposal orders.
+            {% else %}
+                Consolidated institution monitoring, cross-bureau overlap alerts, and SLA compliance.
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'intelligence:dashboard' %}" class="btn btn-outline-primary btn-sm position-relative">
+            <i class="bi bi-cpu me-1"></i>Overlap Center
+            {% if pending_overlaps > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ pending_overlaps }}
+            </span>
+            {% endif %}
+        </a>
+        {% if user.role != 'SENIOR_MGMT' and user.role != 'COMPETENT_AUTH' %}
+        <a href="{% url 'complaints:create' %}" class="btn btn-primary btn-sm shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+            <i class="bi bi-plus-lg me-1"></i>New Grievance Case
+        </a>
+        {% elif user.role == 'SENIOR_MGMT' %}
+        <a href="{% url 'reports:index' %}" class="btn btn-primary btn-sm shadow-sm">
+            <i class="bi bi-file-earmark-bar-graph me-1"></i>Generate Analytics Report
+        </a>
+        {% elif user.role == 'COMPETENT_AUTH' %}
+        <a href="{% url 'complaints:list' %}?status=ESCALATED" class="btn btn-danger btn-sm shadow-sm">
+            <i class="bi bi-shield-exclamation me-1"></i>Inspect Escalated Cases
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Role-Specific Operational Context Alerts -->
+{% if user.role == 'CASE_OFFICER' %}
+<div class="alert alert-info border-info-subtle d-flex justify-content-between align-items-center py-2 px-3 mb-4 rounded-3 shadow-sm">
+    <div class="small">
+        <i class="bi bi-person-check-fill text-info me-2 fs-6"></i>
+        <span>Officer: <strong>{{ user.display_name }}</strong> ({{ user.assigned_bureau.code }}) · You currently have <strong>{{ my_assigned_count }}</strong> complaint(s) directly assigned to you.</span>
+    </div>
+    <a href="{% url 'complaints:list' %}?officer={{ user.id }}" class="btn btn-sm btn-info text-white py-1 px-3" style="font-size: 0.8rem;">
+        <i class="bi bi-filter me-1"></i>Filter My Cases
+    </a>
+</div>
+{% elif user.role == 'BUREAU_HEAD' and pending_transfers_count > 0 %}
+<div class="alert alert-warning border-warning-subtle d-flex justify-content-between align-items-center py-2 px-3 mb-4 rounded-3 shadow-sm">
+    <div class="small">
+        <i class="bi bi-arrow-left-right text-warning me-2 fs-6"></i>
+        <span>Bureau Command: <strong>{{ pending_transfers_count }}</strong> inter-bureau transfer request(s) require your review as {{ user.assigned_bureau.code }} Head.</span>
+    </div>
+    <a href="{% url 'complaints:list' %}?status=TRANSFERRED" class="btn btn-sm btn-warning text-dark py-1 px-3" style="font-size: 0.8rem;">
+        Review Transfers
+    </a>
+</div>
+{% elif user.role == 'COMPETENT_AUTH' and escalated_cases_count > 0 %}
+<div class="alert alert-danger border-danger-subtle d-flex justify-content-between align-items-center py-2 px-3 mb-4 rounded-3 shadow-sm">
+    <div class="small">
+        <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-6"></i>
+        <span>Statutory Authority: <strong>{{ escalated_cases_count }}</strong> escalated complaint(s) are awaiting your formal resolution remarks.</span>
+    </div>
+    <a href="{% url 'complaints:list' %}?status=ESCALATED" class="btn btn-sm btn-danger py-1 px-3" style="font-size: 0.8rem;">
+        Resolve Escalations
+    </a>
+</div>
+{% elif user.role == 'REGIONAL_OFFICER' %}
+<div class="alert alert-success border-success-subtle d-flex justify-content-between align-items-center py-2 px-3 mb-4 rounded-3 shadow-sm">
+    <div class="small">
+        <i class="bi bi-geo-alt-fill text-success me-2 fs-6"></i>
+        <span>Regional Purview: <strong>{{ user.get_authorized_region_display }} Region</strong> · Monitoring <strong>{{ regional_institutions_count }}</strong> approved technical institutions and affiliated grievance dockets.</span>
+    </div>
+    <a href="{% url 'institutions:list' %}" class="btn btn-sm btn-outline-success py-1 px-3" style="font-size: 0.8rem;">
+        Regional Institutions
+    </a>
+</div>
+{% endif %}
+
+<!-- Primary KPI Metric Cards -->
+<!-- Primary KPI Metric Cards (8 Lifecycle & Risk Indicators) -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-blue">
+            <div>
+                <div class="kpi-title">Total Received</div>
+                <div class="kpi-value">{{ total_complaints }}</div>
+                <small class="text-muted" style="font-size: 0.7rem;">All Registered</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-folder2-open"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-yellow">
+            <div>
+                <div class="kpi-title">Pending Intake</div>
+                <div class="kpi-value">{{ pending_complaints }}</div>
+                <small class="text-warning fw-semibold" style="font-size: 0.7rem;">Awaiting Assignment</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-hourglass-split"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-blue">
+            <div>
+                <div class="kpi-title">Under Process</div>
+                <div class="kpi-value">{{ under_process_complaints }}</div>
+                <small class="text-primary fw-semibold" style="font-size: 0.7rem;">Active Scrutiny</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-gear-wide-connected"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-green">
+            <div>
+                <div class="kpi-title">Disposed & Closed</div>
+                <div class="kpi-value">{{ disposed_complaints }}</div>
+                <small class="text-success fw-semibold" style="font-size: 0.7rem;">{{ disposal_rate }}% Disposal Rate</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-check2-circle"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-yellow">
+            <div>
+                <div class="kpi-title">Transferred Cases</div>
+                <div class="kpi-value">{{ transferred_complaints }}</div>
+                <small class="text-muted" style="font-size: 0.7rem;">Inter-Bureau Transit</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-arrow-left-right"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-red">
+            <div>
+                <div class="kpi-title">Escalated Cases</div>
+                <div class="kpi-value text-danger">{{ escalated_complaints }}</div>
+                <small class="text-danger fw-semibold" style="font-size: 0.7rem;">Appellate Scrutiny</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-shield-exclamation"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-red">
+            <div>
+                <div class="kpi-title">SLA Overdue</div>
+                <div class="kpi-value text-danger">{{ overdue_complaints }}</div>
+                <small class="text-danger fw-semibold" style="font-size: 0.7rem;">Breach Reminders</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-exclamation-octagon"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3 col-xl-3">
+        <div class="kpi-card kpi-purple">
+            <div>
+                <div class="kpi-title">Overlap Alerts</div>
+                <div class="kpi-value text-purple" style="color: #9333EA;">{{ pending_overlaps }}</div>
+                <small class="text-purple fw-semibold" style="font-size: 0.7rem; color: #9333EA;">AI Cross-Cases</small>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-cpu"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Monthly Disposal Trends -->
+    <div class="col-lg-8">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h5 class="card-title h6 mb-0">
+                    <i class="bi bi-graph-up me-2 text-primary"></i>Grievance Intake vs. Disposal Velocity (6-Month Trend)
+                </h5>
+                <span class="badge bg-light text-muted border">Live DB Records</span>
+            </div>
+            <div class="card-augis-body">
+                <div style="height: 280px;">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bureau Workload Doughnut -->
+    <div class="col-lg-4">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h5 class="card-title h6 mb-0">
+                    <i class="bi bi-pie-chart me-2 text-primary"></i>Bureau Workload Distribution
+                </h5>
+            </div>
+            <div class="card-augis-body d-flex flex-column align-items-center justify-content-center">
+                <div style="height: 220px; width: 100%;">
+                    <canvas id="bureauWorkloadChart"></canvas>
+                </div>
+                <div class="mt-3 w-100">
+                    <ul class="list-group list-group-flush small">
+                        {% for item in bureau_workload %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 bg-transparent">
+                            <span><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem; color: var(--augis-secondary);"></i> {{ item.currently_assigned_bureau__name }} ({{ item.currently_assigned_bureau__code }})</span>
+                            <span class="badge bg-light text-dark border">{{ item.count }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted text-center py-2 bg-transparent">No active cases assigned.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+</div>
+
+<!-- Regional Distribution & High-Activity Institutions Row -->
+<div class="row g-4 mb-4">
+    <!-- Regional Distribution -->
+    <div class="col-lg-5">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h5 class="card-title h6 mb-0">
+                    <i class="bi bi-geo-alt-fill me-2 text-primary"></i>Regional Grievance Distribution
+                </h5>
+                <span class="badge bg-light text-muted border">AICTE Regions</span>
+            </div>
+            <div class="card-augis-body">
+                <div class="d-flex flex-column gap-3">
+                    {% for reg in regional_distribution %}
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1 small">
+                            <span class="fw-semibold text-dark">{{ reg.region_name }}</span>
+                            <span class="badge bg-light text-primary border font-monospace">{{ reg.count }} Case{{ reg.count|pluralize }}</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: {% widthratio reg.count total_complaints 100 %}%; background-color: var(--augis-primary);" aria-valuenow="{{ reg.count }}" aria-valuemin="0" aria-valuemax="{{ total_complaints }}"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-4 mb-0 small">No regional grievance records logged.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Institution-Wise Case Status -->
+    <div class="col-lg-7">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h5 class="card-title h6 mb-0">
+                    <i class="bi bi-buildings me-2 text-primary"></i>Institution-Wise Grievance Docket Status
+                </h5>
+                <a href="{% url 'institutions:list' %}" class="btn btn-link btn-sm text-decoration-none p-0">Registry Directory</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-augis mb-0">
+                        <thead>
+                            <tr>
+                                <th>Institution</th>
+                                <th>Region</th>
+                                <th class="text-center">Active</th>
+                                <th class="text-center">Disposed</th>
+                                <th class="text-center">Overdue</th>
+                                <th class="text-end">Dossier</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inst in institution_stats %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'institutions:institution_360' inst.institution__id %}" class="fw-semibold text-decoration-none">
+                                        {{ inst.institution__name }}
+                                    </a>
+                                    <div class="text-muted small font-monospace">[{{ inst.institution__aicte_permanent_id }}]</div>
+                                </td>
+                                <td class="small">{{ inst.institution__region }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning-subtle text-dark">{{ inst.active_cases }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success-subtle text-success">{{ inst.disposed_cases }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if inst.overdue_cases > 0 %}
+                                    <span class="badge bg-danger">{{ inst.overdue_cases }}</span>
+                                    {% else %}
+                                    <span class="text-muted small">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'institutions:institution_360' inst.institution__id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                        360° <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No institution activity recorded.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Operational Grids Row -->
+<div class="row g-4">
+    <!-- Recent Chronological Actions -->
+    <div class="col-lg-7">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h5 class="card-title h6 mb-0">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>Recent Action Movement History
+                </h5>
+                <a href="{% url 'complaints:list' %}" class="btn btn-link btn-sm text-decoration-none p-0">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-augis mb-0">
+                        <thead>
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Action Taken</th>
+                                <th>Responsible Officer</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for action in recent_actions %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'complaints:detail' action.complaint.id %}" class="fw-semibold text-decoration-none">
+                                        {{ action.complaint.complaint_no }}
+                                    </a>
+                                    <div class="text-muted small text-truncate" style="max-width: 160px;">{{ action.complaint.institution.name }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ action.get_action_type_display }}</span>
+                                    <div class="text-muted small text-truncate" style="max-width: 180px;">{{ action.remarks }}</div>
+                                </td>
+                                <td class="small">
+                                    {{ action.responsible_officer.display_name|default:'System' }}
+                                    <div class="text-muted" style="font-size: 0.75rem;">{{ action.responsible_bureau.code|default:'' }}</div>
+                                </td>
+                                <td class="small text-muted text-nowrap">
+                                    {{ action.timestamp|date:"M d, H:i" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No recent actions recorded.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Urgent Alerts & SLA Breaches -->
+    <div class="col-lg-5">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h5 class="card-title h6 mb-0">
+                    <i class="bi bi-bell-fill me-2 text-danger"></i>Urgent Alerts & Action Items
+                </h5>
+                <span class="badge bg-danger rounded-pill">{{ urgent_notifications|length }}</span>
+            </div>
+            <div class="card-augis-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for n in urgent_notifications %}
+                    <div class="list-group-item p-3">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                            <span class="badge bg-danger-subtle text-danger small">{{ n.get_notification_type_display }}</span>
+                            <small class="text-muted">{{ n.created_at|timesince }} ago</small>
+                        </div>
+                        <h6 class="mb-1 small fw-bold">{{ n.title }}</h6>
+                        <p class="mb-2 text-muted small">{{ n.message }}</p>
+                        {% if n.related_complaint %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'complaints:detail' n.related_complaint.id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                Inspect Case <i class="bi bi-arrow-right"></i>
+                            </a>
+                            <form action="{% url 'notifications:mark_read' n.id %}" method="post" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-link text-muted btn-sm p-0" style="font-size: 0.75rem;">Dismiss</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-check-circle text-success fs-1 mb-2 d-block"></i>
+                        No pending urgent alerts. System SLA compliance is in order.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. Monthly Trends Chart
+    const trendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+    const monthlyLabels = [{% for item in monthly_trends %}'{{ item.month }}',{% endfor %}];
+    const intakeData = [{% for item in monthly_trends %}{{ item.intake }},{% endfor %}];
+    const disposedData = [{% for item in monthly_trends %}{{ item.disposed }},{% endfor %}];
+
+    new Chart(trendCtx, {
+        type: 'bar',
+        data: {
+            labels: monthlyLabels,
+            datasets: [
+                {
+                    label: 'New Grievances Received',
+                    data: intakeData,
+                    backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Disposed & Resolved',
+                    data: disposedData,
+                    backgroundColor: 'rgba(21, 128, 61, 0.75)',
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } },
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. Bureau Workload Chart
+    const bureauCtx = document.getElementById('bureauWorkloadChart').getContext('2d');
+    const bureauLabels = [{% for item in bureau_workload %}'{{ item.currently_assigned_bureau__code }}',{% endfor %}];
+    const bureauCounts = [{% for item in bureau_workload %}{{ item.count }},{% endfor %}];
+
+    new Chart(bureauCtx, {
+        type: 'doughnut',
+        data: {
+            labels: bureauLabels.length > 0 ? bureauLabels : ['No Data'],
+            datasets: [{
+                data: bureauCounts.length > 0 ? bureauCounts : [1],
+                backgroundColor: ['#12345A', '#2563EB', '#0D9488', '#F59E0B', '#8B5CF6'],
+                borderWidth: 2,
+                borderColor: '#FFFFFF'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            cutout: '68%'
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Notifications & Alerts – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 brand-font mb-1">Notification & SLA Alert Center</h1>
+        <p class="text-muted small mb-0">System-generated breach alerts, cross-bureau overlap warnings, and assignment notices</p>
+    </div>
+    {% if unread_count > 0 %}
+    <form action="{% url 'notifications:mark_all_read' %}" method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-check2-all me-1"></i>Mark All as Read
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+<!-- Filter Bar -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All Notification Types</option>
+                    {% for code, label in types %}
+                    <option value="{{ code }}" {% if filter_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="unread" value="1" id="unreadOnly" {% if unread_only == '1' %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label small fw-semibold" for="unreadOnly">Unread Notifications Only</label>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% url 'notifications:list' %}" class="btn btn-outline-secondary btn-sm" title="Clear"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Notifications List -->
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header">
+        <h6 class="mb-0 fw-bold">Alert Feed ({{ page_obj.paginator.count }})</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for n in page_obj %}
+            <div class="list-group-item p-3 {% if not n.is_read %}bg-light border-start border-primary border-4{% endif %}">
+                <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                    <div>
+                        {% if n.notification_type == 'OVERDUE_ALERT' %}
+                        <span class="badge bg-danger">SLA Overdue Warning</span>
+                        {% elif n.notification_type == 'OVERLAP_ALERT' %}
+                        <span class="badge bg-purple text-white" style="background-color: #9333EA;">Overlap Detected</span>
+                        {% elif n.notification_type == 'APPROACHING_SLA' %}
+                        <span class="badge bg-warning text-dark">Approaching Deadline</span>
+                        {% else %}
+                        <span class="badge bg-primary">{{ n.get_notification_type_display }}</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">{{ n.created_at|date:"M d, Y H:i" }} ({{ n.created_at|timesince }} ago)</small>
+                </div>
+                <h6 class="mb-1 fw-bold text-dark">{{ n.title }}</h6>
+                <p class="mb-2 text-muted small">{{ n.message }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    {% if n.related_complaint %}
+                    <a href="{% url 'complaints:detail' n.related_complaint.id %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.8rem;">
+                        Inspect Case {{ n.related_complaint.complaint_no }} <i class="bi bi-arrow-right"></i>
+                    </a>
+                    {% else %}
+                    <span></span>
+                    {% endif %}
+
+                    {% if not n.is_read %}
+                    <form action="{% url 'notifications:mark_read' n.id %}" method="post" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link text-muted btn-sm p-0 text-decoration-none" style="font-size: 0.8rem;">
+                            <i class="bi bi-check2"></i> Mark Read
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted small"><i class="bi bi-check-all text-success"></i> Read</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-bell-slash fs-1 d-block mb-2 text-secondary"></i>
+                No notifications found.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top p-3">
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

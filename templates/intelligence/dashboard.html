@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block title %}Overlap Intelligence Center – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 brand-font mb-0">Overlap Intelligence Center</h1>
+            <span class="badge bg-purple text-white" style="background-color: #9333EA;">Hybrid NLP Engine</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">AI-assisted detection of multi-bureau grievance duplicates and systemic institutional overlaps</p>
+    </div>
+</div>
+
+<!-- Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-purple">
+            <div>
+                <div class="kpi-title">Total Detected Pairs</div>
+                <div class="kpi-value">{{ total_count }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-cpu"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-yellow">
+            <div>
+                <div class="kpi-title">Pending Human Review</div>
+                <div class="kpi-value">{{ pending_count }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-hourglass-split"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-green">
+            <div>
+                <div class="kpi-title">Confirmed Related</div>
+                <div class="kpi-value">{{ confirmed_count }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-check-all"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-blue">
+            <div>
+                <div class="kpi-title">Dismissed / Filtered</div>
+                <div class="kpi-value">{{ dismissed_count }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-filter-circle"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search }}" class="form-control border-start-0" placeholder="Search case IDs, institution name or permanent ID...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="ALL">All Review Statuses</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="cross_bureau" value="1" id="crossBureauSwitch" {% if cross_bureau_filter == '1' %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label small fw-semibold text-primary" for="crossBureauSwitch">Cross-Bureau Only</label>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% url 'intelligence:dashboard' %}" class="btn btn-outline-secondary btn-sm" title="Clear"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Overlap Candidates Table -->
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header">
+        <h6 class="mb-0 fw-bold">Candidate Pairs Queue</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Target Institution</th>
+                        <th>First Complaint (A)</th>
+                        <th>Second Complaint (B)</th>
+                        <th>Inter-Bureau Context</th>
+                        <th>Similarity Score</th>
+                        <th>Review Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cand in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'institutions:institution_360' cand.first_complaint.institution.id %}" class="fw-semibold text-decoration-none">
+                                {{ cand.first_complaint.institution.name }}
+                            </a>
+                            <div class="text-muted small font-monospace">{{ cand.first_complaint.institution.aicte_permanent_id }}</div>
+                        </td>
+                        <td>
+                            <a href="{% url 'complaints:detail' cand.first_complaint.id %}" class="fw-bold text-decoration-none">
+                                {{ cand.first_complaint.complaint_no }}
+                            </a>
+                            <div class="text-muted small text-truncate" style="max-width: 170px;">{{ cand.first_complaint.title }}</div>
+                            <span class="badge bg-light text-muted border small">{{ cand.first_complaint.currently_assigned_bureau.code }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'complaints:detail' cand.second_complaint.id %}" class="fw-bold text-decoration-none">
+                                {{ cand.second_complaint.complaint_no }}
+                            </a>
+                            <div class="text-muted small text-truncate" style="max-width: 170px;">{{ cand.second_complaint.title }}</div>
+                            <span class="badge bg-light text-muted border small">{{ cand.second_complaint.currently_assigned_bureau.code }}</span>
+                        </td>
+                        <td>
+                            {% if cand.is_cross_bureau %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-shuffle me-1"></i>Cross-Bureau</span>
+                            <div class="small text-muted mt-1">{{ cand.first_complaint.currently_assigned_bureau.code }} vs {{ cand.second_complaint.currently_assigned_bureau.code }}</div>
+                            {% else %}
+                            <span class="badge bg-light text-muted border">Intra-Bureau</span>
+                            <div class="small text-muted mt-1">{{ cand.first_complaint.currently_assigned_bureau.code }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                    <div class="progress-bar {% if cand.combined_score >= 0.7 %}bg-danger{% elif cand.combined_score >= 0.5 %}bg-warning{% else %}bg-primary{% endif %}" style="width: {{ cand.percentage_score }}%;"></div>
+                                </div>
+                                <span class="fw-bold small {% if cand.combined_score >= 0.7 %}text-danger{% elif cand.combined_score >= 0.5 %}text-warning{% else %}text-muted{% endif %}">
+                                    {{ cand.percentage_score }}%
+                                </span>
+                            </div>
+                            <div class="text-muted small" style="font-size: 0.7rem;">NLP Cosine: {{ cand.semantic_similarity|floatformat:2 }}</div>
+                        </td>
+                        <td>
+                            {% if cand.review_status == 'CONFIRMED' %}
+                            <span class="badge bg-success-subtle text-success">Confirmed</span>
+                            {% elif cand.review_status == 'DISMISSED' %}
+                            <span class="badge bg-secondary-subtle text-secondary">Dismissed</span>
+                            {% elif cand.review_status == 'SEPARATE_ISSUES' %}
+                            <span class="badge bg-info-subtle text-info">Separate Issues</span>
+                            {% else %}
+                            <span class="badge bg-warning-subtle text-warning">Pending Scrutiny</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'intelligence:detail' cand.id %}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">
+                                Inspect <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <i class="bi bi-cpu fs-1 d-block mb-2 text-secondary"></i>
+                            No overlap candidates match the specified filter parameters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top p-3">
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

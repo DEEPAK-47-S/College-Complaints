@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Bureaus & Cells – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 brand-font mb-1">AICTE Bureaus & Operational Units</h1>
+        <p class="text-muted small mb-0">Departmental jurisdictional boundaries and units</p>
+    </div>
+    <a href="{% url 'admin_panel:audit_list' %}" class="btn btn-outline-secondary btn-sm">Audit Ledger</a>
+</div>
+
+<div class="row g-4">
+    {% for b in bureaus %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-augis h-100 shadow-sm">
+            <div class="card-augis-header bg-light">
+                <span class="badge bg-primary fs-6">{{ b.code }}</span>
+                {% if b.is_active %}
+                <span class="badge bg-success-subtle text-success">Active</span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger">Inactive</span>
+                {% endif %}
+            </div>
+            <div class="card-augis-body">
+                <h5 class="h6 fw-bold mb-2">{{ b.name }}</h5>
+                <p class="small text-muted mb-3">{{ b.description|default:'No specific description provided.' }}</p>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-muted">
+                    <span>Active Cases: <strong>{{ b.assigned_complaints.count }}</strong></span>
+                    <span>Officers: <strong>{{ b.officers.count }}</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted py-5">No bureaus configured yet.</div>
+    {% endfor %}
+</div>
+{% endblock %}

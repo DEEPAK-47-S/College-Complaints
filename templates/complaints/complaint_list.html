@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block title %}Grievances & Complaints – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 brand-font mb-1">Grievances & Complaints Directory</h1>
+        <p class="text-muted small mb-0">Multi-bureau lifecycle monitoring, SLA tracking, and status transitions</p>
+    </div>
+    {% if user.role != 'SENIOR_MGMT' and user.role != 'COMPETENT_AUTH' %}
+    <a href="{% url 'complaints:create' %}" class="btn btn-primary btn-sm shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+        <i class="bi bi-plus-lg me-1"></i>New Grievance Case
+    </a>
+    {% endif %}
+</div>
+
+<!-- Comprehensive Multi-Criteria Filter Card -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <!-- Row 1: Primary Dimensions -->
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search }}" class="form-control border-start-0" placeholder="Search ID, title, permanent ID...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="bureau" class="form-select form-select-sm">
+                    <option value="">All Bureaus</option>
+                    {% for b in bureaus %}
+                    <option value="{{ b.code }}" {% if bureau_filter == b.code %}selected{% endif %}>{{ b.code }} – {{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="priority" class="form-select form-select-sm">
+                    <option value="">All Priorities</option>
+                    {% for code, label in priorities %}
+                    <option value="{{ code }}" {% if priority_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="region" class="form-select form-select-sm">
+                    <option value="">All Regions</option>
+                    {% for code, label in regions %}
+                    <option value="{{ code }}" {% if region_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <a href="{% url 'complaints:list' %}" class="btn btn-outline-secondary btn-sm w-100" title="Reset Filters"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</a>
+            </div>
+
+            <!-- Row 2: Secondary Dimensions & Date Range -->
+            <div class="col-md-3">
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">All Grievance Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white small" style="font-size: 0.75rem;">From</span>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="form-control" title="Date Received From">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white small" style="font-size: 0.75rem;">To</span>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="form-control" title="Date Received To">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="sort" class="form-select form-select-sm">
+                    <option value="-date_received" {% if sort_filter == '-date_received' %}selected{% endif %}>Newest Intake First</option>
+                    <option value="date_received" {% if sort_filter == 'date_received' %}selected{% endif %}>Oldest Intake First</option>
+                    <option value="due_date" {% if sort_filter == 'due_date' %}selected{% endif %}>SLA Due Earliest</option>
+                    <option value="-due_date" {% if sort_filter == '-due_date' %}selected{% endif %}>SLA Due Latest</option>
+                    <option value="-created_at" {% if sort_filter == '-created_at' %}selected{% endif %}>Recently Created</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="overdue" value="1" id="overdueSwitch" {% if overdue_filter == '1' %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label small fw-semibold text-danger" for="overdueSwitch">Overdue Cases Only</label>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Complaints Table -->
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header">
+        <h6 class="mb-0 fw-bold">Active Cases ({{ total_count }})</h6>
+        <div class="d-flex gap-2">
+            <a href="{% url 'reports:export_csv' %}?status={{ status_filter }}&bureau={{ bureau_filter }}" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                <i class="bi bi-download me-1"></i>Export CSV
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Case ID</th>
+                        <th>Institution</th>
+                        <th>Subject & Category</th>
+                        <th>Bureau</th>
+                        <th>Assigned Officer</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>SLA Due</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'complaints:detail' c.id %}" class="fw-semibold text-decoration-none">
+                                {{ c.complaint_no }}
+                            </a>
+                            <div class="text-muted small">{{ c.date_received|date:"M d, Y" }}</div>
+                        </td>
+                        <td>
+                            <a href="{% url 'institutions:detail' c.institution.id %}" class="text-dark fw-medium text-decoration-none">
+                                {{ c.institution.name }}
+                            </a>
+                            <div class="text-muted small font-monospace">{{ c.institution.aicte_permanent_id }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-medium text-truncate" style="max-width: 200px;">{{ c.title }}</div>
+                            <span class="badge bg-light text-muted border small">{{ c.category.name }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary fw-semibold">{{ c.currently_assigned_bureau.code }}</span>
+                        </td>
+                        <td class="small">
+                            {% if c.currently_assigned_officer %}
+                                {{ c.currently_assigned_officer.display_name }}
+                            {% else %}
+                                <span class="text-muted font-italic">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge-status badge-{{ c.current_status|lower }}">{{ c.get_current_status_display }}</span>
+                        </td>
+                        <td>
+                            {% if c.priority == 'URGENT' %}
+                            <span class="badge bg-danger text-white">Urgent</span>
+                            {% elif c.priority == 'HIGH' %}
+                            <span class="badge bg-warning text-dark">High</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border">{{ c.get_priority_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-nowrap">
+                            {% if c.is_overdue %}
+                            <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</span>
+                            {% elif c.expected_disposal_date %}
+                            <span class="text-muted">{{ c.expected_disposal_date|date:"M d, Y" }}</span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'complaints:detail' c.id %}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">
+                                Scrutiny <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+                            No grievances match the active filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top p-3">
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

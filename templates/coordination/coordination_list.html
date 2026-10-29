@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Cross-Bureau Coordination – AUGIS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 brand-font mb-0">Cross-Bureau Coordination Workspace</h1>
+            <span class="badge bg-primary text-white">Inter-Departmental Synergy</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Joint investigation, harmonized decision-making, and conflict-prevention workspaces</p>
+    </div>
+    {% if user.role == 'SUPER_ADMIN' or user.role == 'BUREAU_HEAD' or user.role == 'COMPETENT_AUTH' or user.is_superuser %}
+    <a href="{% url 'coordination:create' %}" class="btn btn-primary btn-sm shadow-sm" style="background-color: var(--augis-primary); border-color: var(--augis-primary);">
+        <i class="bi bi-plus-lg me-1"></i>Establish Joint Coordination
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filter Bar -->
+<div class="card card-augis mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search }}" class="form-control border-start-0" placeholder="Search coordination ID, title...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+                <a href="{% url 'coordination:list' %}" class="btn btn-outline-secondary btn-sm" title="Clear"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Coordination Records Table -->
+<div class="card card-augis shadow-sm">
+    <div class="card-augis-header">
+        <h6 class="mb-0 fw-bold">Active Joint Coordination Cases ({{ total_count }})</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0">
+                <thead>
+                    <tr>
+                        <th>Coordination ID</th>
+                        <th>Subject Title</th>
+                        <th>Lead Bureau</th>
+                        <th>Participating Units</th>
+                        <th>Linked Cases</th>
+                        <th>Status</th>
+                        <th>Resolution Target</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'coordination:detail' c.id %}" class="fw-bold text-decoration-none font-monospace">
+                                {{ c.coordination_no }}
+                            </a>
+                            <div class="text-muted small">{{ c.created_at|date:"M d, Y" }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ c.title }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ c.coordinating_bureau.code }}</span>
+                        </td>
+                        <td>
+                            {% for b in c.participating_bureaus.all %}
+                            <span class="badge bg-secondary-subtle text-secondary small me-1">{{ b.code }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ c.related_complaints.count }} Cases</span>
+                        </td>
+                        <td>
+                            {% if c.coordination_status == 'INITIATED' %}
+                            <span class="badge bg-warning-subtle text-warning">Initiated</span>
+                            {% elif c.coordination_status == 'IN_PROGRESS' %}
+                            <span class="badge bg-primary-subtle text-primary">In Progress</span>
+                            {% elif c.coordination_status == 'RESOLVED' %}
+                            <span class="badge bg-success-subtle text-success">Consensus Reached</span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary">Closed</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">
+                            {{ c.deadline|default:'Open-ended' }}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'coordination:detail' c.id %}" class="btn btn-sm btn-outline-primary py-0 px-2">
+                                Workspace <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="bi bi-diagram-3 fs-1 d-block mb-2 text-secondary"></i>
+                            No active joint coordination workspaces established.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top p-3">
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

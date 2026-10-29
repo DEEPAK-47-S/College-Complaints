@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}{{ coordination.coordination_no }} – AUGIS{% endblock %}
+
+{% block content %}
+<div class="card card-augis mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge bg-light text-primary border font-monospace fs-6">{{ coordination.coordination_no }}</span>
+                    <span class="badge bg-primary">Lead: {{ coordination.coordinating_bureau.name }} ({{ coordination.coordinating_bureau.code }})</span>
+                    {% if coordination.coordination_status == 'RESOLVED' %}
+                    <span class="badge bg-success-subtle text-success fs-6"><i class="bi bi-check-circle me-1"></i>Consensus Reached</span>
+                    {% elif coordination.coordination_status == 'CLOSED' %}
+                    <span class="badge bg-secondary-subtle text-secondary fs-6">Concluded / Closed</span>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning fs-6">{{ coordination.get_coordination_status_display }}</span>
+                    {% endif %}
+                </div>
+                <h1 class="h4 brand-font mb-1">{{ coordination.title }}</h1>
+                <div class="text-muted small">
+                    Established on {{ coordination.created_at|date:"M d, Y" }} by {{ coordination.created_by.display_name|default:'Official' }}
+                    &bull; Target Deadline: <strong>{{ coordination.deadline|default:'Open-ended' }}</strong>
+                </div>
+            </div>
+
+            {% if can_manage %}
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#coordStatusModal">
+                    <i class="bi bi-arrow-repeat me-1"></i>Update Coordination Status
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Participating Units & Linked Complaints -->
+    <div class="col-lg-5">
+        <!-- Participating Units -->
+        <div class="card card-augis mb-4">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-primary"></i>Participating AICTE Units</h6>
+            </div>
+            <div class="card-augis-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary me-2">LEAD</span>
+                            <strong>{{ coordination.coordinating_bureau.name }}</strong>
+                        </div>
+                        <span class="badge bg-light text-dark border">{{ coordination.coordinating_bureau.code }}</span>
+                    </li>
+                    {% for b in coordination.participating_bureaus.all %}
+                    {% if b != coordination.coordinating_bureau %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-secondary me-2">MEMBER</span>
+                            <span>{{ b.name }}</span>
+                        </div>
+                        <span class="badge bg-light text-dark border">{{ b.code }}</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Linked Grievance Cases -->
+        <div class="card card-augis mb-4">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-link-45deg me-2 text-primary"></i>Linked Complaint Records ({{ complaints.count }})</h6>
+            </div>
+            <div class="card-augis-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for c in complaints %}
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <a href="{% url 'complaints:detail' c.id %}" class="fw-bold text-decoration-none">
+                                {{ c.complaint_no }}
+                            </a>
+                            <span class="badge-status badge-{{ c.current_status|lower }}" style="font-size: 0.7rem;">{{ c.get_current_status_display }}</span>
+                        </div>
+                        <div class="small fw-medium text-dark text-truncate">{{ c.title }}</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                            <span>Bureau: <strong>{{ c.currently_assigned_bureau.code }}</strong></span>
+                            <span>Officer: {{ c.currently_assigned_officer.display_name|default:'Unassigned' }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted p-3 mb-0">No complaints currently linked.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Plan -->
+        <div class="card card-augis">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-card-checklist me-2 text-primary"></i>Consolidated Action Plan</h6>
+            </div>
+            <div class="card-augis-body">
+                <p class="small text-dark mb-0" style="white-space: pre-line; line-height: 1.6;">{{ coordination.action_plan|default:'No specific action plan documented yet.' }}</p>
+                {% if coordination.decision_summary %}
+                <div class="mt-3 p-3 bg-success-subtle rounded border border-success-subtle">
+                    <h6 class="small fw-bold text-success mb-1">Agreed Consensus Order / Regulatory Resolution</h6>
+                    <p class="small mb-0 text-dark">{{ coordination.decision_summary }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Inter-Bureau Joint Remarks Timeline & Add Note -->
+    <div class="col-lg-7">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-chat-left-text me-2 text-primary"></i>Shared Inter-Bureau Scrutiny Timeline</h6>
+                <span class="badge bg-light text-muted border">{{ notes.count }} Notes</span>
+            </div>
+            <div class="card-augis-body d-flex flex-column justify-content-between">
+                <!-- Notes Timeline -->
+                <div class="notes-timeline mb-4 overflow-auto" style="max-height: 480px;">
+                    {% for n in notes %}
+                    <div class="p-3 mb-3 rounded border {% if n.author_bureau == coordination.coordinating_bureau %}bg-light border-primary-subtle{% else %}bg-white{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary text-white" style="font-size: 0.65rem;">{{ n.author_bureau.code }}</span>
+                                <strong class="small">{{ n.author.display_name }}</strong>
+                            </div>
+                            <small class="text-muted">{{ n.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <p class="mb-0 small text-dark" style="white-space: pre-line;">{{ n.note }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted py-5">No joint observations recorded yet. Use the form below to share scrutiny findings.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Add Note Form -->
+                {% if can_add_note %}
+                <div class="p-3 bg-light rounded border mt-auto">
+                    <h6 class="small fw-bold mb-2">Post Observation from {{ user.assigned_bureau.code|default:'Your Bureau' }}</h6>
+                    <form action="{% url 'coordination:add_note' coordination.id %}" method="post">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            {{ note_form.note }}
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary btn-sm px-3 shadow-sm">
+                                <i class="bi bi-send me-1"></i>Post Shared Remark
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% else %}
+                <div class="p-3 bg-light rounded border mt-auto text-muted small text-center">
+                    <i class="bi bi-shield-lock me-1"></i>Observation posting is restricted to authorized coordinating officials.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Update Coordination Status -->
+{% if can_manage %}
+<div class="modal fade" id="coordStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6 fw-bold">Update Joint Coordination Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'coordination:update_status' coordination.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Coordination Status</label>
+                        <select name="status" class="form-select">
+                            {% for code, label in statuses %}
+                            <option value="{{ code }}" {% if coordination.coordination_status == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Consensus Decision Summary / Final Resolution</label>
+                        <textarea name="decision_summary" class="form-control" rows="4" placeholder="Detail the agreed findings or synchronized regulatory decision...">{{ coordination.decision_summary }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">Save Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

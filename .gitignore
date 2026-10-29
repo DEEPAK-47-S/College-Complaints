@@ -1,0 +1,37 @@
+# Python / Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.kilo/
+.gemini/
+.system_generated/
+
+# Logs & Temporary files
+*.log
+scratch/
+temp_*/
+static_collected/
+
+# Environment Secrets
+.env
+
+# Media Uploads (keep directory structure)
+media_private/documents/*
+!media_private/documents/.gitkeep
+
+# Large distribution zip
+AUGIS_FINAL_COMPLETE.zip

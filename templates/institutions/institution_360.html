@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% block title %}Institution 360° Dossier – {{ institution.name }} – AUGIS{% endblock %}
+
+{% block content %}
+<!-- Institution 360° Header Banner -->
+<div class="inst-360-header">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                <span class="badge bg-warning text-dark fw-bold">INSTITUTION 360° DOSSIER</span>
+                <span class="inst-360-badge font-monospace">{{ institution.aicte_permanent_id }}</span>
+                <span class="inst-360-badge">{{ institution.get_institution_type_display }}</span>
+                <span class="inst-360-badge"><i class="bi bi-geo-alt me-1"></i>{{ institution.get_region_display }}</span>
+            </div>
+            <h1 class="h2 text-white brand-font mb-1">{{ institution.name }}</h1>
+            <p class="text-white-50 small mb-0">{{ institution.address }}, {{ institution.district }}, {{ institution.state }} - {{ institution.pincode }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'complaints:create' %}?institution={{ institution.id }}" class="btn btn-light btn-sm fw-semibold">
+                <i class="bi bi-plus-circle me-1"></i>Ingest Complaint
+            </a>
+            <a href="{% url 'institutions:detail' institution.id %}" class="btn btn-outline-light btn-sm">
+                Standard Profile
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Mandatory Dual-Layer Overlap Warnings (Part 9 Invariant) -->
+<div class="row g-3 mb-4">
+    <!-- Indicator 1: Institution-Level Overlap -->
+    <div class="col-md-6">
+        <div class="card h-100 border-0 shadow-sm {% if has_multi_bureau_active %}bg-warning-subtle border-start border-warning border-4{% else %}bg-success-subtle border-start border-success border-4{% endif %} p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="fs-2 {% if has_multi_bureau_active %}text-warning{% else %}text-success{% endif %}">
+                    {% if has_multi_bureau_active %}
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    {% else %}
+                    <i class="bi bi-check-circle-fill"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h6 class="mb-1 fw-bold text-dark">Layer A: Institution-Level Multi-Bureau Activity</h6>
+                    {% if has_multi_bureau_active %}
+                    <p class="mb-0 small text-dark">
+                        <strong>Alert:</strong> Multiple AICTE units (<span class="badge bg-warning text-dark">{{ active_bureaus|join:", " }}</span>) are simultaneously conducting active scrutiny against this institution. Coordinated posture advised.
+                    </p>
+                    {% else %}
+                    <p class="mb-0 small text-muted">
+                        No concurrent multi-departmental scrutiny. Active complaints (if any) are isolated to a single bureau.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicator 2: Issue-Level Overlap -->
+    <div class="col-md-6">
+        <div class="card h-100 border-0 shadow-sm {% if has_issue_level_overlap %}bg-danger-subtle border-start border-danger border-4{% else %}bg-light border-start border-secondary border-4{% endif %} p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="fs-2 {% if has_issue_level_overlap %}text-danger{% else %}text-secondary{% endif %}">
+                    {% if has_issue_level_overlap %}
+                    <i class="bi bi-layers-fill"></i>
+                    {% else %}
+                    <i class="bi bi-shield-check"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h6 class="mb-1 fw-bold text-dark">Layer B: Issue-Level Semantic Overlap</h6>
+                    {% if has_issue_level_overlap %}
+                    <p class="mb-0 small text-dark">
+                        <strong>Alert:</strong> High semantic similarity detected between separate grievance petitions for this institution across bureaus. Redundant investigation risk identified.
+                    </p>
+                    {% else %}
+                    <p class="mb-0 small text-muted">
+                        No conflicting or identical underlying grievance narratives detected across separate cases.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dossier KPI Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-blue">
+            <div>
+                <div class="kpi-title">Total Cases Lodged</div>
+                <div class="kpi-value">{{ total_complaints }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-archive"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-yellow">
+            <div>
+                <div class="kpi-title">Active Investigations</div>
+                <div class="kpi-value">{{ active_count }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-hourglass-split"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-green">
+            <div>
+                <div class="kpi-title">Disposed / Closed</div>
+                <div class="kpi-value">{{ disposed_count }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-check-circle"></i></div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kpi-card kpi-purple">
+            <div>
+                <div class="kpi-title">Joint Coordinations</div>
+                <div class="kpi-value text-purple">{{ coordination_records.count }}</div>
+            </div>
+            <div class="kpi-icon-box"><i class="bi bi-diagram-3"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Departmental Involvement & Categories Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-building-gear me-2 text-primary"></i>Bureau / Cell Involvement Breakdown</h6>
+            </div>
+            <div class="card-augis-body">
+                <ul class="list-group list-group-flush">
+                    {% for b in bureau_stats %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <span class="fw-bold text-primary">{{ b.currently_assigned_bureau__code }}</span>
+                            <span class="text-muted small ms-2">{{ b.currently_assigned_bureau__name }}</span>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ b.count }} Case{{ b.count|pluralize }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted text-center py-3">No bureau involvement recorded.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card card-augis h-100">
+            <div class="card-augis-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-tags me-2 text-primary"></i>Complaint Category Distribution</h6>
+            </div>
+            <div class="card-augis-body">
+                <ul class="list-group list-group-flush">
+                    {% for cat in category_stats %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>{{ cat.category__name }}</span>
+                        <span class="badge bg-light text-dark border">{{ cat.count }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted text-center py-3">No categories logged.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Chronological Case Ledger -->
+    <div class="card-augis-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-list-task me-2 text-primary"></i>Unified Institutional Grievance History</h6>
+            <span class="badge bg-light text-muted border">{{ all_complaints.count }} Records</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group" id="inst360FilterGroup">
+            <button type="button" class="btn btn-outline-primary active" onclick="filter360Table('ALL', this)">All ({{ total_complaints }})</button>
+            <button type="button" class="btn btn-outline-warning" onclick="filter360Table('ACTIVE', this)">Active ({{ active_count }})</button>
+            <button type="button" class="btn btn-outline-success" onclick="filter360Table('DISPOSED', this)">Disposed ({{ disposed_count }})</button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-augis mb-0" id="inst360Table">
+                <thead>
+                    <tr>
+                        <th>Case ID</th>
+                        <th>Grievance Subject</th>
+                        <th>Bureau</th>
+                        <th>Assigned Officer</th>
+                        <th>Status</th>
+                        <th>Date Received</th>
+                        <th>Expected SLA</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in all_complaints %}
+                    <tr class="inst-case-row" data-status="{% if c.current_status == 'DISPOSED' %}DISPOSED{% else %}ACTIVE{% endif %}">
+                        <td>
+                            <a href="{% url 'complaints:detail' c.id %}" class="fw-semibold text-decoration-none">
+                                {{ c.complaint_no }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-medium text-truncate" style="max-width: 200px;">{{ c.title }}</div>
+                            <span class="badge bg-light text-muted border small">{{ c.category.name }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary">{{ c.currently_assigned_bureau.code }}</span>
+                        </td>
+                        <td class="small">
+                            {{ c.currently_assigned_officer.display_name|default:'Unassigned' }}
+                        </td>
+                        <td>
+                            <span class="badge-status badge-{{ c.current_status|lower }}">{{ c.get_current_status_display }}</span>
+                        </td>
+                        <td class="small text-muted">{{ c.date_received|date:"M d, Y" }}</td>
+                        <td class="small">
+                            {% if c.is_overdue %}
+                            <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</span>
+                            {% else %}
+                            <span class="text-muted">{{ c.expected_disposal_date|default:'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'complaints:detail' c.id %}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            No complaints registered for this institution.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filter360Table(status, btn) {
+    document.querySelectorAll('#inst360FilterGroup button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    const rows = document.querySelectorAll('.inst-case-row');
+    rows.forEach(row => {
+        if (status === 'ALL') {
+            row.style.display = '';
+        } else if (status === 'ACTIVE') {
+            row.style.display = (row.getAttribute('data-status') === 'ACTIVE') ? '' : 'none';
+        } else if (status === 'DISPOSED') {
+            row.style.display = (row.getAttribute('data-status') === 'DISPOSED') ? '' : 'none';
+        }
+    });
+}
+</script>
+{% endblock %}
