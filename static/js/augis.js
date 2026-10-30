@@ -21,28 +21,31 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // 2. Dark / Light Theme Toggle
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeButtons = document.querySelectorAll('.theme-toggle-btn, #themeToggleBtn');
     const currentTheme = localStorage.getItem('augis_theme') || 'light';
     
-    if (currentTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+    function updateThemeIcons(theme) {
+        themeButtons.forEach(btn => {
+            btn.innerHTML = theme === 'dark' 
+                ? '<i class="bi bi-sun-fill text-warning"></i>' 
+                : '<i class="bi bi-moon-stars"></i>';
+        });
     }
 
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', function () {
+    if (currentTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        updateThemeIcons('dark');
+    }
+
+    themeButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
             const activeTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('augis_theme', newTheme);
-
-            if (newTheme === 'dark') {
-                themeToggleBtn.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
-            } else {
-                themeToggleBtn.innerHTML = '<i class="bi bi-moon-stars"></i>';
-            }
+            updateThemeIcons(newTheme);
         });
-    }
+    });
 
     // 3. Quick Global Search Shortcut (Press '/' to jump to search)
     const searchInput = document.querySelector('input[name="q"]');

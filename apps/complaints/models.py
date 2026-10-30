@@ -394,7 +394,11 @@ class CaseRelationship(models.Model):
         unique_together = ('source_complaint', 'target_complaint', 'relationship_type')
         constraints = [
             models.CheckConstraint(
-                condition=~models.Q(source_complaint=models.F('target_complaint')),
+                **({
+                    'condition': ~models.Q(source_complaint=models.F('target_complaint'))
+                } if 'condition' in getattr(models.CheckConstraint.__init__, '__code__', {}).co_varnames else {
+                    'check': ~models.Q(source_complaint=models.F('target_complaint'))
+                }),
                 name='case_relationship_no_self_link'
             )
         ]

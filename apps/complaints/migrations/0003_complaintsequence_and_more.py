@@ -27,7 +27,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='caserelationship',
-            constraint=models.CheckConstraint(condition=models.Q(('source_complaint', models.F('target_complaint')), _negated=True), name='case_relationship_no_self_link'),
+            constraint=models.CheckConstraint(
+                **({
+                    'condition': models.Q(('source_complaint', models.F('target_complaint')), _negated=True)
+                } if 'condition' in getattr(models.CheckConstraint.__init__, '__code__', {}).co_varnames else {
+                    'check': models.Q(('source_complaint', models.F('target_complaint')), _negated=True)
+                }),
+                name='case_relationship_no_self_link'
+            ),
         ),
         migrations.AlterUniqueTogether(
             name='complaintsequence',

@@ -20,6 +20,16 @@
     
     <!-- Public Portal Custom Stylesheet -->
     <link rel="stylesheet" href="{% static 'css/public_portal.css' %}">
+
+    <!-- Theme Early Initializer (Prevents FOUC) -->
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('augis_theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
     
     {% block extra_head %}{% endblock %}
 </head>
@@ -45,6 +55,9 @@
                 <a href="{% url 'public:track' %}" class="btn btn-outline btn-sm">
                     <i class="ph ph-magnifying-glass"></i> Track Status
                 </a>
+                <button id="publicThemeToggleBtn" class="btn btn-outline btn-sm" title="Toggle Light/Dark Theme" type="button" aria-label="Toggle Light/Dark Theme">
+                    <i class="ph ph-moon" id="publicThemeIcon"></i>
+                </button>
                 <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-sm" style="border-color: #e2e8f0; color: #64748b;" title="AICTE & Case Officer Login">
                     <i class="ph ph-lock-key"></i> Officer Login
                 </a>
@@ -68,6 +81,9 @@
             <a href="{% url 'public:track' %}" class="btn btn-outline btn-block">
                 <i class="ph ph-magnifying-glass"></i> Track Status
             </a>
+            <button id="publicMobileThemeToggleBtn" class="btn btn-outline btn-block" type="button" aria-label="Toggle Light/Dark Theme">
+                <i class="ph ph-moon" id="publicMobileThemeIcon"></i> Toggle Theme
+            </button>
             <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-block" style="border-color: #cbd5e1; color: #475569;">
                 <i class="ph ph-lock-key"></i> Officer Login
             </a>
@@ -104,20 +120,21 @@
     <!-- Footer -->
     <footer class="public-footer">
         <div class="public-container">
-            <p style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">Centralized College & Student Grievance Redressal Portal</p>
+            <p class="footer-brand-title">Centralized College & Student Grievance Redressal Portal</p>
             <p>Unified Technical Education Redressal & Oversight System (AUGIS)</p>
-            <p style="margin-top: 0.5rem; color: #94a3b8; font-size: 0.8rem;">
+            <p class="text-muted" style="margin-top: 0.5rem; font-size: 0.8rem;">
                 All submissions are directly routed and scrutinized under official oversight regulations.
             </p>
-            <div style="margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1rem; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div class="footer-bottom-row">
                 <span>&copy; {% now "Y" %} College Grievance Redressal System. All rights reserved.</span>
-                <a href="{% url 'accounts:login' %}" style="color: #64748b; font-size: 0.8rem;">Officer Access Portal</a>
+                <a href="{% url 'accounts:login' %}" style="font-size: 0.8rem;">Officer Access Portal</a>
             </div>
         </div>
     </footer>
 
-    <!-- Mobile Menu Script -->
+    <!-- Mobile Menu & Theme Toggle Scripts -->
     <script>
+        // Mobile Drawer Toggle
         const menuBtn = document.getElementById('mobileMenuBtn');
         const navDrawer = document.getElementById('mobileNavDrawer');
         if (menuBtn && navDrawer) {
@@ -125,6 +142,32 @@
                 navDrawer.style.display = navDrawer.style.display === 'block' ? 'none' : 'block';
             });
         }
+
+        // Public Theme Toggle Sync
+        const themeBtn = document.getElementById('publicThemeToggleBtn');
+        const mobileThemeBtn = document.getElementById('publicMobileThemeToggleBtn');
+        const themeIcon = document.getElementById('publicThemeIcon');
+        const mobileThemeIcon = document.getElementById('publicMobileThemeIcon');
+
+        function updateIcons(theme) {
+            const iconClass = theme === 'dark' ? 'ph-sun' : 'ph-moon';
+            if (themeIcon) themeIcon.className = 'ph ' + iconClass;
+            if (mobileThemeIcon) mobileThemeIcon.className = 'ph ' + iconClass;
+        }
+
+        const activeTheme = localStorage.getItem('augis_theme') || 'light';
+        updateIcons(activeTheme);
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('augis_theme', next);
+            updateIcons(next);
+        }
+
+        if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+        if (mobileThemeBtn) mobileThemeBtn.addEventListener('click', toggleTheme);
     </script>
     
     {% block scripts %}{% endblock %}

@@ -91,7 +91,11 @@ class OverlapCandidate(models.Model):
                 name='unique_canonical_overlap_pair'
             ),
             models.CheckConstraint(
-                condition=~models.Q(first_complaint=models.F('second_complaint')),
+                **({
+                    'condition': ~models.Q(first_complaint=models.F('second_complaint'))
+                } if 'condition' in getattr(models.CheckConstraint.__init__, '__code__', {}).co_varnames else {
+                    'check': ~models.Q(first_complaint=models.F('second_complaint'))
+                }),
                 name='overlap_candidate_no_self_link'
             )
         ]

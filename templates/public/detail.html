@@ -1,25 +1,25 @@
 {% extends "public/base_public.html" %}
 
 {% block content %}
-<div class="animate-fade-in" style="max-width: 840px; margin: 0 auto;">
+<div class="animate-fade-in detail-container">
     
-    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+    <div class="detail-nav-bar">
         <a href="{% url 'public:track' %}" class="btn btn-outline btn-sm">
             <i class="ph ph-arrow-left"></i> Search Again
         </a>
-        <button onclick="window.print()" class="btn btn-outline btn-sm" style="color: #64748b;">
+        <button onclick="window.print()" class="btn btn-outline btn-sm btn-print">
             <i class="ph ph-printer"></i> Print Status Summary
         </button>
     </div>
 
     <!-- Main Grievance Summary Card -->
-    <div class="portal-card" style="margin-bottom: 1.75rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
+    <div class="portal-card detail-main-card">
+        <div class="detail-header-row">
             <div>
-                <h2 style="font-weight: 800; font-size: 1.4rem; color: var(--primary-color); font-family: monospace; letter-spacing: 0.03em;">
+                <h2 class="detail-complaint-id">
                     {{ complaint.complaint_no }}
                 </h2>
-                <div class="text-muted" style="font-size: 0.85rem; margin-top: 0.25rem;">
+                <div class="text-muted detail-reg-date">
                     <i class="ph-bold ph-calendar-blank"></i> Registration Date: <strong>{{ complaint.date_received|date:"F d, Y" }}</strong>
                 </div>
             </div>
@@ -54,56 +54,56 @@
             </div>
         </div>
         
-        <div style="margin-bottom: 1.25rem;">
-            <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">
+        <div class="detail-title-block">
+            <h3 class="detail-title">
                 {{ complaint.title }}
             </h3>
-            <span style="display: inline-block; background: var(--primary-light); color: var(--primary-color); font-weight: 700; font-size: 0.82rem; padding: 0.3rem 0.75rem; border-radius: 9999px;">
+            <span class="detail-category-pill">
                 {{ complaint.category.name }}
             </span>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; background: #f8fafc; padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid #e2e8f0;">
+        <div class="detail-meta-grid">
             <div>
-                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                <div class="text-muted detail-meta-label">
                     <i class="ph-fill ph-buildings"></i> Target College / Institution
                 </div>
-                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                <div class="detail-meta-val">
                     {{ complaint.institution.name }}
                 </div>
-                <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.15rem;">
+                <div class="detail-meta-sub">
                     {{ complaint.institution.district }}, {{ complaint.institution.state }}
                 </div>
             </div>
 
             <div>
-                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                <div class="text-muted detail-meta-label">
                     <i class="ph-fill ph-map-pin"></i> Campus Location
                 </div>
-                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                <div class="detail-meta-val">
                     {{ complaint.issue_location|default:complaint.institution.address }}
                 </div>
                 {% if complaint.area %}
-                <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.15rem;">
+                <div class="detail-meta-sub">
                     Area: {{ complaint.area }}
                 </div>
                 {% endif %}
             </div>
 
             <div>
-                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                <div class="text-muted detail-meta-label">
                     <i class="ph-fill ph-shield-check"></i> Handling Bureau
                 </div>
-                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                <div class="detail-meta-val">
                     {{ complaint.currently_assigned_bureau.name }} ({{ complaint.currently_assigned_bureau.code }})
                 </div>
             </div>
 
             <div>
-                <div class="text-muted" style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                <div class="text-muted detail-meta-label">
                     <i class="ph-fill ph-clock"></i> Targeted Resolution Date
                 </div>
-                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-top: 0.25rem;">
+                <div class="detail-meta-val">
                     {% if complaint.expected_disposal_date %}
                         {{ complaint.expected_disposal_date|date:"F d, Y" }}
                     {% else %}
@@ -115,13 +115,13 @@
         
         <!-- Officer Latest Response / Remarks -->
         {% if latest_response or complaint.closure_remarks %}
-        <div class="portal-alert portal-alert-info mt-4" style="margin-top: 1.5rem;">
-            <i class="ph-fill ph-chat-circle-dots" style="font-size: 1.75rem; flex-shrink: 0; color: #2563eb;"></i>
+        <div class="portal-alert portal-alert-info detail-finding-alert">
+            <i class="ph-fill ph-chat-circle-dots detail-finding-icon"></i>
             <div>
-                <div style="font-weight: 700; font-size: 1rem; color: #1e40af; margin-bottom: 0.35rem;">
+                <div class="detail-finding-heading">
                     Official Finding / Regulatory Order:
                 </div>
-                <div style="font-size: 0.95rem; line-height: 1.5; color: #1e293b;">
+                <div class="detail-finding-text">
                     {{ latest_response|default:complaint.closure_remarks }}
                 </div>
             </div>
@@ -134,7 +134,7 @@
         <h3 class="section-title">
             <i class="ph-fill ph-clock-counter-clockwise"></i> Case Progress Timeline
         </h3>
-        <p class="text-muted" style="font-size: 0.85rem; margin-top: -0.75rem; margin-bottom: 1.5rem;">
+        <p class="text-muted detail-timeline-sub">
             Chronological audit trail of all regulatory actions, notices, and progress milestones recorded for this grievance.
         </p>
         
@@ -144,7 +144,7 @@
                 <div class="timeline-date">
                     {{ complaint.last_action_date|date:"F d, Y - h:i A" }}
                 </div>
-                <div class="timeline-title" style="color: var(--primary-color);">
+                <div class="timeline-title detail-timeline-state">
                     Current State: {{ complaint.get_current_status_display }}
                 </div>
                 <div class="timeline-content">

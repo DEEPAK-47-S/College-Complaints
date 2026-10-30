@@ -38,7 +38,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='overlapcandidate',
-            constraint=models.CheckConstraint(condition=models.Q(('first_complaint', models.F('second_complaint')), _negated=True), name='overlap_candidate_no_self_link'),
+            constraint=models.CheckConstraint(
+                **({
+                    'condition': models.Q(('first_complaint', models.F('second_complaint')), _negated=True)
+                } if 'condition' in getattr(models.CheckConstraint.__init__, '__code__', {}).co_varnames else {
+                    'check': models.Q(('first_complaint', models.F('second_complaint')), _negated=True)
+                }),
+                name='overlap_candidate_no_self_link'
+            ),
         ),
         migrations.AddField(
             model_name='intelligencejob',
